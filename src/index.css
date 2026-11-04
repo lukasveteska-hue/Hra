@@ -838,3 +838,185 @@ table.data th.sticky {
     gap: 8px;
   }
 }
+
+/* ---------- Grafy ---------- */
+
+.chart {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.grid-2 > *,
+.grid-3 > *,
+.layout > *,
+.tiles > * {
+  min-width: 0;
+}
+.tile .value {
+  overflow-wrap: anywhere;
+}
+.chart svg {
+  display: block;
+}
+.chart .grid {
+  stroke: #353b42;
+  stroke-width: 1;
+}
+.chart .zero {
+  stroke: #6b737b;
+  stroke-width: 1;
+}
+.chart .axis {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.chart .direct-label {
+  fill: var(--text);
+  font-size: 11px;
+}
+.chart .crosshair {
+  stroke: #8a939b;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend i,
+.tooltip i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #16181b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  min-width: 120px;
+  max-width: 240px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+.tooltip .tt-title {
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.tooltip .tt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tooltip .tt-row span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tooltip .tt-detail {
+  color: var(--muted);
+  margin-top: 2px;
+}
+.hbars {
+  display: grid;
+  gap: 8px;
+}
+.hbar {
+  display: grid;
+  grid-template-columns: 150px 1fr 110px;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.hb-track {
+  height: 10px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hb-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+}
+@media (max-width: 800px) {
+  .hbar {
+    grid-template-columns: 110px 1fr 86px;
+    font-size: 12px;
+  }
+}
+
+/* ---------- Vyhodnotenie sezóny ---------- */
+
+.hero {
+  text-align: center;
+  padding: 26px 16px;
+  background: linear-gradient(180deg, #2f2a1c 0%, var(--panel) 100%);
+  border: 1px solid #5a4a22;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.hero .trophy {
+  font-size: 46px;
+  line-height: 1;
+}
+.hero .big {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--accent-2);
+  margin: 8px 0 4px;
+}
+.hero .sub {
+  color: var(--muted);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.tile {
+  background: var(--panel-2);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.tile .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tile .value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.tile .note {
+  color: var(--muted);
+  font-size: 11px;
+}
+.delta-up {
+  color: var(--good);
+}
+.delta-down {
+  color: var(--bad);
+}
+table.data th.num {
+  text-align: right;
+}
+table.data th.center {
+  text-align: center;
+}

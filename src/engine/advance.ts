@@ -6,6 +6,9 @@ import { ageOn } from './ratings';
 import { Rng } from './rng';
 import { createSplitIfReady } from './schedule';
 import { validTactic } from './tactics';
+import { matchdayIncome, monthlyFinance, seasonPrizes, squadValue } from './finance';
+import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
+import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
 
 export function cloneState(state: GameState): GameState {
@@ -57,6 +60,7 @@ export function applyResult(state: GameState, fixtureId: string, r: MatchResult,
   const f = state.seasonData.fixtures.find((x) => x.id === fixtureId);
   if (!f || f.played) return;
   f.played = true;
+  matchdayIncome(state, f, rng);
   f.homeGoals = r.homeGoals;
   f.awayGoals = r.awayGoals;
   f.goals = r.goals;
@@ -78,6 +82,7 @@ export function applyResult(state: GameState, fixtureId: string, r: MatchResult,
     p.energy = Math.round(r.energy[id] ?? p.energy);
     p.form = clamp(p.form + (rating - 6.3) * 1.8 + (10 - p.form) * 0.12 + rng.normal(0, 1.2), 0, 20);
     p.morale = clamp(p.morale + 2, 0, 100);
+    driftPriceFactor(state, p);
     const s = st(id);
     s.apps++;
     s.ratingSum += rating;
@@ -151,8 +156,13 @@ function dailyUpdate(state: GameState): void {
  * Ukončí aktuálny deň (odohrá zvyšné zápasy dňa) a posunie hru na ďalší deň.
  * Volať len vtedy, keď nemám dnes neodohraný zápas.
  */
-function endDay(state: GameState, rng: Rng): void {
+function endDay(state: GameState, rng: Rng): number {
   playPendingFixtures(state, rng);
+  snapshotTables(state);
+  if (seasonFinished(state)) seasonPrizes(state);
+  expireOffers(state);
+  aiTransferDay(state, rng);
+  const newOffers = generateOffersForMe(state, rng);
   for (const id of Object.keys(state.leagues)) {
     if (createSplitIfReady(state, id)) {
       state.news.push({ date: state.date, text: `${state.leagues[id].name}: základná časť skončila, začína nadstavba.` });
@@ -164,6 +174,24 @@ function endDay(state: GameState, rng: Rng): void {
   const after = transferWindow(state.date);
   if (before && !after) state.news.push({ date: state.date, text: 'Prestupové obdobie sa skončilo.' });
   if (!before && after) state.news.push({ date: state.date, text: `Začalo sa ${after === 'leto' ? 'letné' : 'zimné'} prestupové obdobie.` });
+  const day = state.date.slice(8);
+  if (day === '01') monthlyFinance(state);
+  if (day === '01' || day === '15') {
+    (state.seasonData.valueHistory ??= []).push({ date: state.date, value: squadValue(state, state.manager.clubId) });
+  }
+  return newOffers;
+}
+
+/** Uloží poradie v tabuľkách lig, v ktorých sa dnes hralo */
+function snapshotTables(state: GameState): void {
+  const hist = (state.seasonData.posHistory ??= {});
+  for (const id of Object.keys(state.leagues)) {
+    if (!state.seasonData.fixtures.some((f) => f.leagueId === id && f.date === state.date && f.played)) continue;
+    const t = standings(state, id);
+    const list = (hist[id] ??= []);
+    if (list[list.length - 1]?.date === state.date) list.pop();
+    list.push({ date: state.date, order: t.map((r) => r.clubId), points: Object.fromEntries(t.map((r) => [r.clubId, r.points])) });
+  }
 }
 
 export type AdvanceMode = 'day' | 'week' | 'window' | 'match';
@@ -182,9 +210,16 @@ export function advance(state: GameState, mode: AdvanceMode): GameState {
   const target =
     mode === 'day' ? addDays(s.date, 1) : mode === 'week' ? addDays(s.date, 7) : mode === 'window' ? addDays(transferWindowEnd(s.date) ?? s.date, 1) : null;
   for (let i = 0; i < 400; i++) {
-    if (seasonFinished(s)) break;
-    endDay(s, rng);
+    if (seasonFinished(s)) {
+      // Posledný deň sezóny – zápis tabuliek a odmien
+      snapshotTables(s);
+      seasonPrizes(s);
+      break;
+    }
+    const offers = endDay(s, rng);
     if (myFixtureToday(s)) break;
+    // Pri novej ponuke na môjho hráča sa hra zastaví
+    if (offers > 0 && mode !== 'day') break;
     if (target && s.date >= target) break;
   }
   s.rngState = rng.state;
@@ -196,6 +231,10 @@ export function finishMyMatch(state: GameState, results: Array<{ fixtureId: stri
   const s = cloneState(state);
   const rng = new Rng(rngState);
   for (const { fixtureId, result } of results) applyResult(s, fixtureId, result, rng);
+  if (seasonFinished(s)) {
+    snapshotTables(s);
+    seasonPrizes(s);
+  }
   s.rngState = rng.state;
   return s;
 }

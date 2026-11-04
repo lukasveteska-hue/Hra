@@ -242,11 +242,21 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 
 ---
 
+## 14b. Vyhodnotenie sezóny
+
+Na konci sezóny slávnostná obrazovka s kartami:
+- **Môj klub:** umiestnenie, body, séria výsledkov, doma/vonku, čisté kontá, série, návštevnosť, graf umiestnenia a bodov po kolách, góly podľa minút.
+- **Konečné tabuľky** všetkých líg.
+- **Hráči:** štatistiky kádra, zmena hodnotenia a hodnoty počas sezóny.
+- **Liga a ocenenia:** strelci, asistencie, známky, karty, jedenástka sezóny, rekordy ligy, návštevnosť klubov.
+- **Financie:** príjmy a výdavky podľa druhu, zostatok a hodnota kádra v čase, hospodárenie po mesiacoch.
+- **Prestupy:** príchody, odchody, najdrahšie prestupy sezóny.
+
 ## 15. Poradie vývoja
 
-1. Základ projektu, hráči, kluby, dáta, ukladanie
-2. Simulácia zápasu, liga, tabuľka, plynutie času
-3. Prestupový trh a zmluvy
+1. ✅ Základ projektu, hráči, kluby, dáta, ukladanie
+2. ✅ Simulácia zápasu, liga, tabuľka, plynutie času
+3. ✅ Prestupový trh a zmluvy (+ základné financie a vyhodnotenie sezóny)
 4. Financie (vstupné, sponzori, pôžičky, štadión)
 5. Vývoj hráčov, tréning, mládež, prechod sezóny
 6. Domáci pohár a európske poháre

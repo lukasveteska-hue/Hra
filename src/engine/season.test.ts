@@ -84,3 +84,27 @@ describe('celá sezóna', () => {
     expect(top[0][1].goals).toBeGreaterThan(8);
   });
 });
+
+describe('prestupy a financie počas sezóny', () => {
+  const s = playSeason('zlin', 11);
+
+  it('počítačové kluby prestupujú a prichádzajú ponuky', () => {
+    console.log('prestupov', s.transfers.length, 'do zahraničia', s.transfers.filter((t) => t.toName).length, 'ponúk na mňa', s.offers.length);
+    expect(s.transfers.length).toBeGreaterThan(20);
+    expect(s.offers.length).toBeGreaterThan(3);
+  });
+
+  it('financie klubov sú rozumné', () => {
+    const rows = Object.values(s.clubs)
+      .filter((c) => ['slavia', 'zlin', 'slovan', 'malzenice', 'karvina', 'trencin'].includes(c.id))
+      .map((c) => `${c.shortName} ${Math.round(c.balance / 1000)} tis.`);
+    console.log('zostatky', rows.join(', '));
+    const byType: Record<string, number> = {};
+    for (const t of s.ledger) byType[t.type] = (byType[t.type] ?? 0) + t.amount;
+    console.log('môj klub', JSON.stringify(byType));
+    const broke = Object.values(s.clubs).filter((c) => c.balance < -2_000_000);
+    expect(broke.map((c) => c.shortName)).toEqual([]);
+    expect(s.seasonData.prizesPaid).toBe(true);
+    expect(s.seasonData.posHistory?.CZ1.length).toBeGreaterThan(30);
+  });
+});

@@ -225,7 +225,10 @@ export class MatchSim {
     const attempt = (si: 0 | 1, me: typeof sh, opp: typeof sh, poss: number) => {
       const side = this.sides[si];
       const ratio = me.att / Math.max(1, opp.def);
-      const rate = Math.min(0.4, SHOT_RATE * 2 * poss * ratio ** RATIO_EXP * me.chance);
+      // Tím, ktorý vysoko vedie, poľaví
+      const lead = side.goals - this.sides[si === 0 ? 1 : 0].goals;
+      const ease = lead >= 4 ? 0.4 : lead >= 3 ? 0.6 : 1;
+      const rate = Math.min(0.4, SHOT_RATE * 2 * poss * ratio ** RATIO_EXP * me.chance * ease);
       if (this.rng.next() >= rate) return;
       side.shots++;
       // Strelec podľa útočného podielu
@@ -289,9 +292,9 @@ export class MatchSim {
     for (const si of [0, 1] as const) {
       const side = this.sides[si];
       const opp = this.sides[si === 0 ? 1 : 0];
-      const yellowP = 0.021 * (1 + (opp.attack / 100 - 0.5) * 0.3);
+      const yellowP = 0.018 * (1 + (opp.attack / 100 - 0.5) * 0.3);
       if (this.rng.next() < yellowP) {
-        const id = this.weightedPick(side.onPitch.map((x) => ({ id: x.id, w: x.slot === 'B' ? 0.1 : SHARE[x.slot].def + 0.3 })));
+        const id = this.weightedPick(side.onPitch.map((x) => ({ id: x.id, w: x.slot === 'B' ? 0.1 : SHARE[x.slot].def * 0.6 + 0.5 })));
         if (id) this.card(si, id, this.rng.next() < 0.04 ? 'red' : 'yellow', clubNames);
       }
       if (this.rng.next() < 0.0011) {

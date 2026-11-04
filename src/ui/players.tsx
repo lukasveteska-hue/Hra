@@ -6,6 +6,7 @@ import { countryName } from '../data/countries';
 import { ageOn, marketValue, ovr } from '../engine/ratings';
 import type { Player, Position } from '../engine/types';
 import { seasonLabel } from '../engine/game';
+import { PlayerActions } from './transfersUi';
 
 const POS_ORDER: Record<Position, number> = { B: 0, O: 1, Z: 2, U: 3 };
 
@@ -34,7 +35,9 @@ export function PlayerTable({
       sticky: true,
       render: (p) => (
         <button className="link" onClick={() => onSelect(p)}>
-          {p.lastName} {p.firstName.charAt(0)}.
+          {p.lastName} {p.firstName.charAt(0)}.{p.listed ? ' 💲' : ''}
+          {p.injuryDays > 0 ? ' 🩹' : ''}
+          {p.suspension > 0 ? ' 🟥' : ''}
         </button>
       ),
       sort: (p) => `${p.lastName} ${p.firstName}`,
@@ -118,7 +121,9 @@ function AttrBar({ label, v }: { label: string; v: number }) {
 
 export function PlayerDetail({ player, onClose }: { player: Player; onClose: () => void }) {
   const { state } = useGame();
-  const p = player;
+  // Vždy aktuálny stav hráča (po prestupe, predĺžení zmluvy…)
+  const p = state.players[player.id] ?? player;
+  const st = state.seasonData.stats[p.id];
   const club = p.clubId ? state.clubs[p.clubId] : null;
   const age = ageOn(p.birthDate, state.date);
   const [by, bm, bd] = p.birthDate.split('-');
@@ -132,7 +137,7 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
             {p.firstName} {p.lastName}
           </h2>
           <div className="muted">
-            {POS_NAME[p.position]} · {club ? club.name : 'bez klubu'}
+            {POS_NAME[p.position]} · {club ? club.name : p.abroad ? `${p.abroad} (zahraničie)` : 'voľný hráč'}
           </div>
         </div>
         <div className="spacer" />
@@ -186,6 +191,14 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
         </dd>
         <dt>Energia</dt>
         <dd>{Math.round(p.energy)} %</dd>
+        {st && (
+          <>
+            <dt>Sezóna</dt>
+            <dd>
+              {st.apps} zápasov · {st.goals} gólov · {st.assists} asistencií · Ø {(st.ratingSum / Math.max(1, st.apps)).toFixed(2)}
+            </dd>
+          </>
+        )}
         <dt>Morálka</dt>
         <dd>{Math.round(p.morale)} %</dd>
         <dt>Trhová hodnota</dt>
@@ -208,7 +221,14 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
             <dd className="bad">{p.suspension} zápasy</dd>
           </>
         )}
+        {p.listed && (
+          <>
+            <dt>Na predaj</dt>
+            <dd className="mid">{p.askingPrice ? money(p.askingPrice) : 'áno'}</dd>
+          </>
+        )}
       </dl>
+      <PlayerActions player={p} />
     </Modal>
   );
 }

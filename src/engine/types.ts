@@ -57,6 +57,8 @@ export interface Player {
   listed: boolean;
   /** Požadovaná cena (ak je na listine) */
   askingPrice: number | null;
+  /** Hráč odišiel do zahraničia (názov klubu) – už nehrá v hre */
+  abroad?: string;
 }
 
 export type Country = 'CZ' | 'SK' | string;
@@ -139,6 +141,12 @@ export interface GameState {
   seasonData: SeasonData;
   /** Taktika môjho klubu */
   tactic: Tactic;
+  /** Ponuky na mojich hráčov */
+  offers: Offer[];
+  /** Všetky prestupy (aj medzi počítačovými klubmi) */
+  transfers: TransferRecord[];
+  /** Účtovníctvo môjho klubu */
+  ledger: Transaction[];
   /** Stav generátora náhodných čísel */
   rngState: number;
   nextId: number;
@@ -182,6 +190,8 @@ export interface Fixture {
   awayGoals: number;
   /** Strelci gólov: [minúta, id hráča, id klubu] */
   goals: Array<[number, string, string]>;
+  /** Počet divákov */
+  attendance?: number;
 }
 
 export interface PlayerSeasonStats {
@@ -200,4 +210,81 @@ export interface SeasonData {
   /** Či už bola vytvorená nadstavba danej ligy */
   splitDone: Record<string, boolean>;
   stats: Record<string, PlayerSeasonStats>;
+  /** Stav môjho klubu na začiatku sezóny (na porovnanie na konci) */
+  start?: SeasonStart;
+  /** Vývoj tabuliek po kolách */
+  posHistory?: Record<string, PosSnapshot[]>;
+  /** Hodnota kádra môjho klubu v čase */
+  valueHistory?: Array<{ date: string; value: number }>;
+  /** Za ktoré kluby (a hráčov) už prišli odmeny za sezónu */
+  prizesPaid?: boolean;
+}
+
+// ---------- Fáza 3: prestupy, financie, história ----------
+
+export type TxType =
+  | 'mzdy'
+  | 'vstupne'
+  | 'tv'
+  | 'sponzor'
+  | 'odmena'
+  | 'prestup_nakup'
+  | 'prestup_predaj'
+  | 'priatelsky'
+  | 'ine';
+
+export interface Transaction {
+  date: string;
+  type: TxType;
+  amount: number;
+  text: string;
+  /** Zostatok po transakcii */
+  balance: number;
+}
+
+export interface Offer {
+  id: string;
+  playerId: string;
+  /** Kupujúci klub v hre, alebo null pri zahraničnom klube */
+  fromClubId: string | null;
+  /** Názov zahraničného klubu */
+  foreignName?: string;
+  foreignCountry?: string;
+  amount: number;
+  date: string;
+  /** Do kedy platí */
+  expires: string;
+  /** Maximálna suma, ktorú je klub ochotný zaplatiť (skryté) */
+  maxAmount: number;
+  status: 'nova' | 'prijata' | 'odmietnuta' | 'protinavrh' | 'vyprsala';
+}
+
+export interface TransferRecord {
+  date: string;
+  playerId: string;
+  playerName: string;
+  position: Position;
+  age: number;
+  fromClubId: string | null;
+  /** Ak klub nie je v hre (zahraničie / voľný hráč) */
+  fromName?: string;
+  toClubId: string | null;
+  toName?: string;
+  fee: number;
+}
+
+export interface SeasonStart {
+  balance: number;
+  squadValue: number;
+  wageBill: number;
+  playerOvr: Record<string, number>;
+  playerValue: Record<string, number>;
+  reputation: number;
+}
+
+export interface PosSnapshot {
+  date: string;
+  /** Poradie klubov (id) v tabuľke */
+  order: string[];
+  points: Record<string, number>;
 }

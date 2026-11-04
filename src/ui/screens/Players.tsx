@@ -6,7 +6,7 @@ import { PlayerDetail, PlayerTable } from '../players';
 
 const LIMIT = 200;
 
-export function PlayersScreen() {
+export function PlayersScreen({ preset = 'all' }: { preset?: 'all' | 'listed' | 'free' }) {
   const { state } = useGame();
   const [selected, setSelected] = useState<Player | null>(null);
   const [q, setQ] = useState('');
@@ -21,7 +21,9 @@ export function PlayersScreen() {
     const needle = q.trim().toLowerCase();
     return Object.values(state.players)
       .filter((p) => {
-        if (p.clubId === state.manager.clubId) return false;
+        if (p.clubId === state.manager.clubId || p.abroad) return false;
+        if (preset === 'listed' && !p.listed) return false;
+        if (preset === 'free' && p.clubId) return false;
         if (pos && p.position !== pos) return false;
         if (league && (p.clubId ? state.clubs[p.clubId].leagueId : null) !== league) return false;
         if (ageOn(p.birthDate, state.date) > maxAge) return false;
@@ -33,11 +35,10 @@ export function PlayersScreen() {
       })
       .sort((a, b) => ovr(b) - ovr(a))
       .slice(0, LIMIT);
-  }, [state, q, pos, league, maxAge, minOvr, minPot, maxPrice]);
+  }, [state, q, pos, league, maxAge, minOvr, minPot, maxPrice, preset]);
 
   return (
     <>
-      <h1>Hráči</h1>
       <div className="panel">
         <div className="grid-3">
           <label className="field">

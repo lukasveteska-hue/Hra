@@ -30,7 +30,7 @@ describe('nová hra', () => {
         expect(v).toBeLessThanOrEqual(99);
       }
       expect(p.potential).toBeGreaterThanOrEqual(Math.floor(ovr(p)));
-      expect(p.wage).toBeGreaterThan(0);
+      if (p.clubId) expect(p.wage).toBeGreaterThan(0);
     }
   });
 

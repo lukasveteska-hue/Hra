@@ -8,7 +8,7 @@ import { standings } from '../../engine/standings';
 import { formatDateShort } from '../dates';
 import { FixtureList } from './League';
 
-export function Overview({ openClub }: { openClub: (id: string) => void }) {
+export function Overview({ openClub, openReview }: { openClub: (id: string) => void; openReview: () => void }) {
   const { state } = useGame();
   const club = state.clubs[state.manager.clubId];
   const squad = squadOf(state, club.id);
@@ -40,6 +40,20 @@ export function Overview({ openClub }: { openClub: (id: string) => void }) {
         </div>
       </div>
 
+      {!next && state.seasonData.fixtures.every((f) => f.played) && (
+        <div className="hero" style={{ marginTop: 16 }}>
+          <div className="trophy">🏆</div>
+          <div className="big">Sezóna sa skončila</div>
+          <button className="primary" onClick={openReview} style={{ marginTop: 10 }}>
+            Zobraziť vyhodnotenie sezóny
+          </button>
+        </div>
+      )}
+      {state.offers.some((o) => o.status === 'nova') && (
+        <div className="panel" style={{ marginTop: 16, borderColor: 'var(--accent)' }}>
+          <strong className="mid">Máš nové ponuky na hráčov</strong> – pozri sa do časti Prestupy.
+        </div>
+      )}
       {next && (
         <div className="panel" style={{ marginTop: 16 }}>
           <h3>Najbližší zápas</h3>

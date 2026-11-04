@@ -6,9 +6,11 @@ import { ageOn, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
 import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
+import { seasonStartSnapshot } from './finance';
+import { generateFreeAgents } from './transfers';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {
@@ -111,7 +113,7 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
   const seasonData = createSeason({ leagues, season }, rng);
   const tactic = defaultTactic(Object.values(players).filter((p) => p.clubId === opts.clubId));
 
-  return {
+  const state: GameState = {
     version: SAVE_VERSION,
     date,
     season,
@@ -126,7 +128,15 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
     news: [{ date, text: `${opts.manager.name} sa stal novým trénerom klubu ${clubs[opts.clubId].name}.` }],
     rngState: rng.state,
     nextId,
+    offers: [],
+    transfers: [],
+    ledger: [],
   };
+  generateFreeAgents(state, rng, 40);
+  state.seasonData.start = seasonStartSnapshot(state);
+  state.seasonData.valueHistory = [{ date, value: state.seasonData.start.squadValue }];
+  state.rngState = rng.state;
+  return state;
 }
 
 /** Hráč z databázy → herný hráč; chýbajúce údaje sa odhadnú */

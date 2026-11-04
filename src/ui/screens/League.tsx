@@ -34,14 +34,14 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
           Strelci
         </button>
       </div>
-      {tab === 'table' && <Table leagueId={leagueId} openClub={openClub} />}
+      {tab === 'table' && <LeagueTable leagueId={leagueId} openClub={openClub} />}
       {tab === 'rounds' && <Rounds leagueId={leagueId} />}
       {tab === 'scorers' && <Scorers leagueId={leagueId} />}
     </>
   );
 }
 
-function Table({ leagueId, openClub }: { leagueId: string; openClub: (id: string) => void }) {
+export function LeagueTable({ leagueId, openClub }: { leagueId: string; openClub: (id: string) => void }) {
   const { state } = useGame();
   const league = state.leagues[leagueId];
   const rows = standings(state, leagueId);

@@ -5,6 +5,7 @@ import { SAVE_VERSION } from './game';
 import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
+import { seasonStartSnapshot } from './finance';
 import type { GameState } from './types';
 
 export interface SaveMeta {
@@ -95,6 +96,13 @@ function migrate(state: GameState): GameState {
     state.tactic = defaultTactic(Object.values(state.players).filter((p) => p.clubId === state.manager.clubId));
     state.rngState = rng.state;
     state.version = 3;
+  }
+  if (state.version < 4) {
+    state.offers ??= [];
+    state.transfers ??= [];
+    state.ledger ??= [];
+    state.seasonData.start ??= seasonStartSnapshot(state);
+    state.version = 4;
   }
   return state;
 }

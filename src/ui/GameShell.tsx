@@ -10,17 +10,20 @@ import { MatchScreen } from './MatchScreen';
 import { ClubScreen } from './screens/Club';
 import { LeagueScreen } from './screens/League';
 import { Overview } from './screens/Overview';
-import { PlayersScreen } from './screens/Players';
+import { FinanceScreen } from './screens/Finance';
+import { SeasonReview } from './screens/SeasonReview';
+import { TransfersScreen } from './screens/Transfers';
 import { SaveScreen } from './screens/Save';
 import { SquadScreen } from './screens/Squad';
 
-export type Screen = 'overview' | 'squad' | 'league' | 'players' | 'save';
+export type Screen = 'overview' | 'squad' | 'transfers' | 'league' | 'finance' | 'save' | 'review';
 
 const NAV: Array<{ id: Screen; label: string; icon: string }> = [
   { id: 'overview', label: 'Prehľad', icon: '🏠' },
   { id: 'squad', label: 'Káder', icon: '👕' },
+  { id: 'transfers', label: 'Prestupy', icon: '🔄' },
   { id: 'league', label: 'Súťaže', icon: '🏆' },
-  { id: 'players', label: 'Hráči', icon: '🔍' },
+  { id: 'finance', label: 'Financie', icon: '💶' },
   { id: 'save', label: 'Hra', icon: '💾' },
 ];
 
@@ -34,6 +37,7 @@ export function GameShell() {
   const mode = continueMode(state);
   const window = transferWindow(state.date);
   const todayMatch = myFixtureToday(state);
+  const offerCount = state.offers.filter((o) => o.status === 'nova').length;
 
   const go = (s: Screen) => {
     setClubView(null);
@@ -65,11 +69,13 @@ export function GameShell() {
   } else {
     main = (
       <>
-        {screen === 'overview' && <Overview openClub={openClub} />}
+        {screen === 'overview' && <Overview openClub={openClub} openReview={() => go('review')} />}
         {screen === 'squad' && <SquadScreen />}
+        {screen === 'transfers' && <TransfersScreen />}
         {screen === 'league' && <LeagueScreen openClub={openClub} />}
-        {screen === 'players' && <PlayersScreen />}
+        {screen === 'finance' && <FinanceScreen />}
         {screen === 'save' && <SaveScreen />}
+        {screen === 'review' && <SeasonReview openClub={openClub} />}
       </>
     );
   }
@@ -122,8 +128,8 @@ export function GameShell() {
               </button>
             )}
             {mode === 'over' && (
-              <button className="primary" disabled title="Prechod do novej sezóny príde v ďalšej fáze">
-                Koniec sezóny
+              <button className="primary" onClick={() => go('review')}>
+                🏆 Vyhodnotenie sezóny
               </button>
             )}
           </div>
@@ -142,7 +148,10 @@ export function GameShell() {
               }}
             >
               <span className="icon">{n.icon}</span>
-              <span>{n.label}</span>
+              <span>
+                {n.label}
+                {n.id === 'transfers' && offerCount > 0 ? ` (${offerCount})` : ''}
+              </span>
             </button>
           ))}
         </nav>
