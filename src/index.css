@@ -9,6 +9,10 @@
   --muted: #9aa3ab;
   --accent: #e0a526;
   --accent-2: #f2c14e;
+  --accent-ink: #1b1b1b;
+  --club-1: #e0a526;
+  --club-2: #16181b;
+  --club-bar: #16181b;
   --good: #5cb85c;
   --bad: #e05d5d;
   --mid: #d9b44a;
@@ -84,7 +88,7 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #1b1b1b;
+  color: var(--accent-ink);
   font-weight: 600;
 }
 button.primary:hover:not(:disabled) {
@@ -172,8 +176,9 @@ label.field > span {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: #16181b;
-  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, var(--club-bar) 0%, #16181b 75%);
+  border-bottom: 3px solid var(--club-1);
+  box-shadow: 0 3px 0 0 var(--club-2);
 }
 .topbar .club {
   display: flex;
@@ -227,6 +232,7 @@ label.field > span {
 .sidenav button.active {
   background: var(--panel-2);
   color: var(--accent-2);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 .sidenav .icon {
   width: 20px;
@@ -293,7 +299,7 @@ label.field > span {
 }
 .tabs button.active {
   background: var(--accent);
-  color: #1b1b1b;
+  color: var(--accent-ink);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -344,7 +350,7 @@ table.data tbody tr.clickable {
   cursor: pointer;
 }
 table.data tr.highlight td {
-  background: rgba(224, 165, 38, 0.14);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 /* Prvý stĺpec (meno) ostáva viditeľný pri posúvaní do strany */
 table.data .sticky {
@@ -512,7 +518,7 @@ table.data th.sticky {
 }
 .club-pick button.selected {
   border-color: var(--accent);
-  background: rgba(224, 165, 38, 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 .club-pick .meta {
   font-size: 11px;
@@ -966,8 +972,8 @@ table.data th.sticky {
 .hero {
   text-align: center;
   padding: 26px 16px;
-  background: linear-gradient(180deg, #2f2a1c 0%, var(--panel) 100%);
-  border: 1px solid #5a4a22;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--club-1) 22%, var(--panel)) 0%, var(--panel) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
   border-radius: var(--radius);
   margin-bottom: 16px;
 }
@@ -1019,4 +1025,12 @@ table.data th.num {
 }
 table.data th.center {
   text-align: center;
+}
+@media (max-width: 800px) {
+  .sidenav button.active {
+    box-shadow: inset 0 3px 0 var(--accent);
+  }
+  .sidenav {
+    border-top: 2px solid var(--club-1);
+  }
 }

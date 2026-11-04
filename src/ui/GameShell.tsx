@@ -7,6 +7,7 @@ import { leagueOf, seasonLabel } from '../engine/game';
 import { useGame } from './GameContext';
 import { ClubBadge, formatDate, money } from './common';
 import { MatchScreen } from './MatchScreen';
+import { clubTheme } from './clubTheme';
 import { ClubScreen } from './screens/Club';
 import { LeagueScreen } from './screens/League';
 import { Overview } from './screens/Overview';
@@ -83,7 +84,7 @@ export function GameShell() {
   }
 
   return (
-    <div className="app">
+    <div className="app" style={clubTheme(club.colors) as React.CSSProperties}>
       <header className="topbar">
         <div className="club">
           <ClubBadge club={club} size={30} />

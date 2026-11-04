@@ -53,6 +53,12 @@ function randomDevType(rng: Rng): DevType {
   return 'bust';
 }
 
+/** Dĺžka zmluvy: väčšina 2–3 roky, niektoré len rok (aby bol trh živý) */
+function contractYears(rng: Rng): number {
+  const x = rng.next();
+  return x < 0.14 ? 1 : x < 0.44 ? 2 : x < 0.76 ? 3 : x < 0.94 ? 4 : 5;
+}
+
 export function randomPersonality(rng: Rng): Personality {
   const x = rng.next();
   if (x < 0.25) return 'ambiciozny';
@@ -144,7 +150,7 @@ export function generatePlayer(rng: Rng, o: GenOptions): Player {
     suspension: 0,
     yellowCards: 0,
     clubId: o.clubId,
-    contractUntil: o.season + rng.int(1, 4),
+    contractUntil: o.season + contractYears(rng),
     wage: 0,
     priceFactor: o.priceFactor,
     listed: false,

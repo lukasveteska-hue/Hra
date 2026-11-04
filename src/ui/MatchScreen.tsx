@@ -114,15 +114,7 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
           </li>
         ))}
       </ul>
-      {phase === 'done' && (
-        <div className="panel row">
-          <strong>Zápas skončil {hs.goals}:{as.goals}.</strong>
-          <div className="spacer" />
-          <button className="primary" onClick={finish}>
-            Pokračovať ▶
-          </button>
-        </div>
-      )}
+      {phase === 'done' && l.result && <MatchSummary result={l.result} sim={sim} onContinue={finish} />}
       <div className="grid-2 match-grid">
         <div className="col-side">
           {phase === 'live' && (
@@ -217,7 +209,12 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
               </div>
             </div>
           )}
-          {phase === 'done' && l.result && <Ratings result={l.result} clubId={my.clubId} />}
+          {phase === 'done' && l.result && (
+            <>
+              <Ratings result={l.result} clubId={sim.sides[0].clubId} title={`Známky – ${home.shortName}`} />
+              <Ratings result={l.result} clubId={sim.sides[1].clubId} title={`Známky – ${away.shortName}`} />
+            </>
+          )}
         </div>
         <div className="col-feed">
           <div className="panel">
@@ -354,13 +351,13 @@ function SubDialog({ sim, side, onClose }: { sim: MatchSim; side: 0 | 1; onClose
   );
 }
 
-function Ratings({ result: r, clubId }: { result: MatchResult; clubId: string }) {
+function Ratings({ result: r, clubId, title }: { result: MatchResult; clubId: string; title: string }) {
   const { state } = useGame();
   const mine = r.appeared.filter((id) => state.players[id]?.clubId === clubId);
   const color = (v: number) => (v >= 7.5 ? 'var(--good)' : v >= 6.5 ? 'var(--mid)' : v >= 5.5 ? 'var(--text)' : 'var(--bad)');
   return (
     <div className="panel">
-      <h3>Známky hráčov</h3>
+      <h3>{title}</h3>
       <div className="pitch-list">
         {mine
           .sort((a, b) => (r.ratings[b] ?? 0) - (r.ratings[a] ?? 0))
@@ -381,6 +378,56 @@ function Ratings({ result: r, clubId }: { result: MatchResult; clubId: string })
               </div>
             );
           })}
+      </div>
+    </div>
+  );
+}
+
+function MatchSummary({ result: r, sim, onContinue }: { result: MatchResult; sim: MatchSim; onContinue: () => void }) {
+  const { state } = useGame();
+  const [h, a] = sim.sides;
+  const motmId = Object.entries(r.ratings).sort((x, y) => y[1] - x[1])[0]?.[0];
+  const motm = motmId ? state.players[motmId] : null;
+  const clubName = (id: string) => state.clubs[id]?.shortName ?? '';
+  return (
+    <div className="panel">
+      <div className="row" style={{ marginBottom: 10 }}>
+        <strong style={{ fontSize: 16 }}>
+          Zápas skončil {h.goals}:{a.goals}
+        </strong>
+        <div className="spacer" />
+        <button className="primary" onClick={onContinue}>
+          Pokračovať ▶
+        </button>
+      </div>
+      <div className="grid-2">
+        <div>
+          <h3>Góly</h3>
+          {r.goals.length === 0 && <div className="muted">Bez gólov.</div>}
+          {r.goals.map(([m, pid, club], i) => (
+            <div key={i}>
+              <span className="muted">{m}'</span> ⚽ <strong>{state.players[pid]?.lastName}</strong> <span className="muted">({clubName(club)})</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <h3>Hráč zápasu</h3>
+          {motm && (
+            <div className="stat">
+              <div style={{ fontSize: 18, fontWeight: 700 }}>
+                ⭐ {motm.firstName} {motm.lastName}
+              </div>
+              <div className="muted">
+                {clubName(motm.clubId ?? '')} · známka <strong>{r.ratings[motmId!].toFixed(1)}</strong>
+                {r.scorers.filter((x) => x === motmId).length > 0 && ` · ${r.scorers.filter((x) => x === motmId).length}× gól`}
+                {r.assists.filter((x) => x === motmId).length > 0 && ` · ${r.assists.filter((x) => x === motmId).length}× asistencia`}
+              </div>
+            </div>
+          )}
+          <p className="muted" style={{ fontSize: 12 }}>
+            Známky sú na stupnici 1–10 (6,0 = priemerný výkon). Ovplyvňujú formu hráča.
+          </p>
+        </div>
       </div>
     </div>
   );
