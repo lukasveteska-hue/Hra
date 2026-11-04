@@ -8,7 +8,7 @@ import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
 import { generateFreeAgents } from './transfers';
-import { initialManagement } from './management';
+import { expectedPosition, initialManagement } from './management';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
 export const SAVE_VERSION = 7;
@@ -137,6 +137,7 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
   };
   initialManagement(state, rng);
   generateFreeAgents(state, rng, 55);
+  state.seasonData.boardTarget = expectedPosition(state, opts.clubId);
   state.seasonData.start = seasonStartSnapshot(state);
   state.seasonData.valueHistory = [{ date, value: state.seasonData.start.squadValue }];
   state.rngState = rng.state;

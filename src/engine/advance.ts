@@ -187,6 +187,15 @@ function endDay(state: GameState, rng: Rng): number {
   if (!before && after) state.news.push({ date: state.date, text: `Začalo sa ${after === 'leto' ? 'letné' : 'zimné'} prestupové obdobie.` });
   const day = state.date.slice(8);
   if (day === '01') monthlyFinance(state);
+  if (day === '01' && (state.date.slice(5, 7) === '03' || state.date.slice(5, 7) === '05')) {
+    const expiring = Object.values(state.players).filter((p) => p.clubId === state.manager.clubId && p.contractUntil <= state.season + 1);
+    if (expiring.length) {
+      state.news.push({
+        date: state.date,
+        text: `Končiace zmluvy (30. 6.): ${expiring.map((p) => p.lastName).join(', ')}. Ak ich nepredĺžiš, odídu zadarmo.`,
+      });
+    }
+  }
   const month = Number(state.date.slice(5, 7));
   if (day === '01' && month !== 6 && month !== 7) monthlyDevelopment(state, rng);
   if (day === '01' || day === '15') {
