@@ -1,15 +1,18 @@
 // Hlavná obrazovka hry: horná lišta, navigácia a obsah
 
 import { useState } from 'react';
+import { advance, continueMode, myFixtureToday, type AdvanceMode } from '../engine/advance';
+import { transferWindow } from '../engine/calendar';
 import { leagueOf, seasonLabel } from '../engine/game';
 import { useGame } from './GameContext';
 import { ClubBadge, formatDate, money } from './common';
-import { Overview } from './screens/Overview';
-import { SquadScreen } from './screens/Squad';
+import { MatchScreen } from './MatchScreen';
+import { ClubScreen } from './screens/Club';
 import { LeagueScreen } from './screens/League';
+import { Overview } from './screens/Overview';
 import { PlayersScreen } from './screens/Players';
 import { SaveScreen } from './screens/Save';
-import { ClubScreen } from './screens/Club';
+import { SquadScreen } from './screens/Squad';
 
 export type Screen = 'overview' | 'squad' | 'league' | 'players' | 'save';
 
@@ -22,21 +25,54 @@ const NAV: Array<{ id: Screen; label: string; icon: string }> = [
 ];
 
 export function GameShell() {
-  const { state } = useGame();
+  const { state, setState } = useGame();
   const [screen, setScreen] = useState<Screen>('overview');
   const [clubView, setClubView] = useState<string | null>(null);
+  const [inMatch, setInMatch] = useState(false);
   const club = state.clubs[state.manager.clubId];
   const league = leagueOf(state, club);
+  const mode = continueMode(state);
+  const window = transferWindow(state.date);
+  const todayMatch = myFixtureToday(state);
 
   const go = (s: Screen) => {
     setClubView(null);
     setScreen(s);
-    window.scrollTo(0, 0);
+    scrollTo(0, 0);
   };
   const openClub = (id: string) => {
     setClubView(id);
-    window.scrollTo(0, 0);
+    scrollTo(0, 0);
   };
+  const move = (m: AdvanceMode) => {
+    setState(advance(state, m));
+    scrollTo(0, 0);
+  };
+
+  let main: React.ReactNode;
+  if (inMatch && todayMatch) {
+    main = (
+      <MatchScreen
+        fixture={todayMatch}
+        onDone={() => {
+          setInMatch(false);
+          go('overview');
+        }}
+      />
+    );
+  } else if (clubView) {
+    main = <ClubScreen clubId={clubView} onBack={() => setClubView(null)} />;
+  } else {
+    main = (
+      <>
+        {screen === 'overview' && <Overview openClub={openClub} />}
+        {screen === 'squad' && <SquadScreen />}
+        {screen === 'league' && <LeagueScreen openClub={openClub} />}
+        {screen === 'players' && <PlayersScreen />}
+        {screen === 'save' && <SaveScreen />}
+      </>
+    );
+  }
 
   return (
     <div className="app">
@@ -52,41 +88,65 @@ export function GameShell() {
         </div>
         <div className="info">
           <div>
-            <span className="label">Dátum</span>
+            <span className="label">{window ? `Prestupové obdobie (${window})` : 'Dátum'}</span>
             {formatDate(state.date)}
           </div>
           <div>
             <span className="label">Účet</span>
             <span className={club.balance < 0 ? 'bad' : ''}>{money(club.balance)}</span>
           </div>
-          <button className="primary" disabled title="Plynutie času príde v ďalšej fáze">
-            Pokračovať ▶
-          </button>
         </div>
+        {!inMatch && (
+          <div className="advance">
+            {mode === 'match' && (
+              <button className="primary" onClick={() => setInMatch(true)}>
+                Na zápas ▶
+              </button>
+            )}
+            {mode === 'window' && (
+              <>
+                <button onClick={() => move('week')} title="Posunúť o 7 dní (zastaví sa v deň zápasu)">
+                  +7 dní
+                </button>
+                <button onClick={() => move('window')} title="Do konca prestupového obdobia (zastaví sa v deň zápasu)">
+                  Do konca obdobia
+                </button>
+                <button className="primary" onClick={() => move('day')}>
+                  Ďalší deň ▶
+                </button>
+              </>
+            )}
+            {mode === 'next' && (
+              <button className="primary" onClick={() => move('match')}>
+                Ďalší zápas ▶
+              </button>
+            )}
+            {mode === 'over' && (
+              <button className="primary" disabled title="Prechod do novej sezóny príde v ďalšej fáze">
+                Koniec sezóny
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="layout">
         <nav className="sidenav">
           {NAV.map((n) => (
-            <button key={n.id} className={screen === n.id && !clubView ? 'active' : ''} onClick={() => go(n.id)}>
+            <button
+              key={n.id}
+              className={screen === n.id && !clubView && !inMatch ? 'active' : ''}
+              onClick={() => {
+                setInMatch(false);
+                go(n.id);
+              }}
+            >
               <span className="icon">{n.icon}</span>
               <span>{n.label}</span>
             </button>
           ))}
         </nav>
-        <main className="content">
-          {clubView ? (
-            <ClubScreen clubId={clubView} onBack={() => setClubView(null)} />
-          ) : (
-            <>
-              {screen === 'overview' && <Overview openClub={openClub} />}
-              {screen === 'squad' && <SquadScreen />}
-              {screen === 'league' && <LeagueScreen openClub={openClub} />}
-              {screen === 'players' && <PlayersScreen />}
-              {screen === 'save' && <SaveScreen />}
-            </>
-          )}
-        </main>
+        <main className="content">{main}</main>
       </div>
     </div>
   );

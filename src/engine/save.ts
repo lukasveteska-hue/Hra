@@ -2,6 +2,9 @@
 
 import { del, get, set } from 'idb-keyval';
 import { SAVE_VERSION } from './game';
+import { Rng } from './rng';
+import { createSeason } from './schedule';
+import { defaultTactic } from './tactics';
 import type { GameState } from './types';
 
 export interface SaveMeta {
@@ -85,6 +88,13 @@ function migrate(state: GameState): GameState {
     state.staff ??= {};
     state.databaseName ??= 'Predvolená databáza 2026/27';
     state.version = 2;
+  }
+  if (state.version < 3) {
+    const rng = new Rng(state.rngState);
+    state.seasonData = createSeason(state, rng);
+    state.tactic = defaultTactic(Object.values(state.players).filter((p) => p.clubId === state.manager.clubId));
+    state.rngState = rng.state;
+    state.version = 3;
   }
   return state;
 }

@@ -105,6 +105,8 @@ export interface League {
   country: 'CZ' | 'SK';
   tier: 1 | 2;
   clubIds: string[];
+  /** Nadstavba po základnej časti (žiadna = len základná časť) */
+  split?: SplitGroup[];
 }
 
 export interface Manager {
@@ -133,7 +135,69 @@ export interface GameState {
   /** Názov databázy, z ktorej hra vznikla */
   databaseName: string;
   news: NewsItem[];
+  /** Zápasy a štatistiky aktuálnej sezóny */
+  seasonData: SeasonData;
+  /** Taktika môjho klubu */
+  tactic: Tactic;
   /** Stav generátora náhodných čísel */
   rngState: number;
   nextId: number;
+}
+
+// ---------- Fáza 2: zápasy, taktika, sezóna ----------
+
+export type Style = 'normal' | 'kratke' | 'centre' | 'nabehy';
+
+export interface Tactic {
+  formation: string;
+  /** Útočnosť 0–100 */
+  attack: number;
+  style: Style;
+  /** Hráči v základnej zostave podľa pozícií formácie (rovnaké poradie ako sloty) */
+  lineup: string[];
+  /** Náhradníci (max 9) */
+  bench: string[];
+  captain: string | null;
+}
+
+/** Nadstavba ligy: skupiny podľa umiestnenia po základnej časti */
+export interface SplitGroup {
+  name: string;
+  /** Umiestnenie od–do (vrátane), napr. 1–6 */
+  from: number;
+  to: number;
+}
+
+export interface Fixture {
+  id: string;
+  leagueId: string;
+  round: number;
+  /** 'zakladna' alebo index skupiny nadstavby ("s0", "s1") */
+  phase: string;
+  date: string;
+  homeId: string;
+  awayId: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  /** Strelci gólov: [minúta, id hráča, id klubu] */
+  goals: Array<[number, string, string]>;
+}
+
+export interface PlayerSeasonStats {
+  apps: number;
+  goals: number;
+  assists: number;
+  yellow: number;
+  red: number;
+  ratingSum: number;
+}
+
+export interface SeasonData {
+  fixtures: Fixture[];
+  /** Dátumy kôl pre každú ligu (vrátane nadstavby) */
+  roundDates: Record<string, string[]>;
+  /** Či už bola vytvorená nadstavba danej ligy */
+  splitDone: Record<string, boolean>;
+  stats: Record<string, PlayerSeasonStats>;
 }

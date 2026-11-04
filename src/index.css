@@ -589,3 +589,252 @@ table.data th.sticky {
     grid-template-columns: 90px 1fr 30px;
   }
 }
+
+/* ---------- Zostava ---------- */
+
+.lineup {
+  display: grid;
+  gap: 6px;
+}
+.lineup-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 36px 44px;
+  gap: 8px;
+  align-items: center;
+}
+.lineup-row select {
+  min-height: 36px;
+  padding: 6px 8px;
+}
+.bench-row {
+  grid-template-columns: 22px 30px 1fr 36px 44px;
+  cursor: pointer;
+  min-height: 34px;
+}
+.bench-row input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+}
+.bench-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Zápas ---------- */
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  background: #16181b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.scoreboard .team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+.scoreboard .team.away {
+  justify-content: flex-end;
+  text-align: right;
+}
+.scoreboard .team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scoreboard .score {
+  font-size: 34px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1;
+}
+.scoreboard .minute {
+  color: var(--accent-2);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 4px;
+}
+.progress {
+  height: 4px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.6s linear;
+}
+.commentary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.commentary li {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.commentary .min {
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.commentary li.goal {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.commentary li.red {
+  color: var(--bad);
+}
+.commentary li.mine-side .txt::before {
+  content: '';
+}
+.match-stats {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 4px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.match-stats .l {
+  text-align: right;
+}
+.match-stats .c {
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+.other-matches {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.other-matches .om {
+  display: grid;
+  grid-template-columns: 1fr 44px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.other-matches .om .h {
+  text-align: right;
+}
+.other-matches .om .s {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.other-matches .om.flash .s {
+  color: var(--accent-2);
+}
+.pitch-list {
+  display: grid;
+  gap: 4px;
+}
+.pitch-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 46px;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+}
+.energy-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.energy-bar > div {
+  height: 100%;
+}
+.result-chip {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: #111;
+  margin-right: 2px;
+}
+.result-chip.V {
+  background: var(--good);
+}
+.result-chip.R {
+  background: #9aa3ab;
+}
+.result-chip.P {
+  background: var(--bad);
+}
+.group-sep td {
+  border-top: 2px solid var(--accent);
+}
+.topbar .advance {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 800px) {
+  .scoreboard .score {
+    font-size: 28px;
+  }
+  .scoreboard .team {
+    font-size: 13px;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+  .scoreboard .team.away {
+    flex-direction: column-reverse;
+    text-align: center;
+  }
+  .topbar .advance {
+    width: 100%;
+  }
+  .topbar .advance .primary {
+    flex: 1;
+  }
+}
+/* Na počítači priebeh vľavo, ovládanie vpravo; na mobile ovládanie hore */
+@media (min-width: 801px) {
+  .match-grid .col-feed {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .match-grid .col-side {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+@media (max-width: 800px) {
+  .commentary {
+    max-height: 280px;
+  }
+}
+.mobile-only {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mobile-only {
+    display: block;
+  }
+  .grid-2.keep {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}

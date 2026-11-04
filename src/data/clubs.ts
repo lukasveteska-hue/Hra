@@ -19,6 +19,8 @@ export interface LeagueSeed {
   name: string;
   country: 'CZ' | 'SK';
   tier: 1 | 2;
+  /** Nadstavba po základnej časti */
+  split?: Array<{ name: string; from: number; to: number }>;
   clubs: ClubSeed[];
 }
 
@@ -28,6 +30,10 @@ export const LEAGUES: LeagueSeed[] = [
     name: 'Chance Liga',
     country: 'CZ',
     tier: 1,
+    split: [
+      { name: 'Skupina o titul', from: 1, to: 6 },
+      { name: 'Skupina o záchranu', from: 11, to: 16 },
+    ],
     clubs: [
       { id: 'slavia', name: 'SK Slavia Praha', shortName: 'Slavia', abbr: 'SLA', city: 'Praha', stadium: 'Fortuna Arena', capacity: 19370, colors: ['#d50000', '#ffffff'], reputation: 75 },
       { id: 'sparta', name: 'AC Sparta Praha', shortName: 'Sparta', abbr: 'SPA', city: 'Praha', stadium: 'epet ARENA', capacity: 18349, colors: ['#7a0019', '#f2c200'], reputation: 74 },
@@ -76,6 +82,10 @@ export const LEAGUES: LeagueSeed[] = [
     name: 'Niké liga',
     country: 'SK',
     tier: 1,
+    split: [
+      { name: 'Skupina o titul', from: 1, to: 6 },
+      { name: 'Skupina o záchranu', from: 7, to: 12 },
+    ],
     clubs: [
       { id: 'slovan', name: 'ŠK Slovan Bratislava', shortName: 'Slovan', abbr: 'SBA', city: 'Bratislava', stadium: 'Tehelné pole', capacity: 22500, colors: ['#5ba4e0', '#ffffff'], reputation: 70 },
       { id: 'zilina', name: 'MŠK Žilina', shortName: 'Žilina', abbr: 'ZIL', city: 'Žilina', stadium: 'Štadión pod Dubňom', capacity: 10897, colors: ['#ffd200', '#007a3d'], reputation: 64 },

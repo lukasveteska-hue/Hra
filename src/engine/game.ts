@@ -4,9 +4,11 @@ import type { Database, DbClub, DbPlayer } from './database';
 import { generatePlayer, generateSquad } from './generator';
 import { ageOn, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
 import { Rng } from './rng';
+import { createSeason } from './schedule';
+import { defaultTactic } from './tactics';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {
@@ -106,10 +108,15 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
     staff[s.id] = { ...s };
   }
 
+  const seasonData = createSeason({ leagues, season }, rng);
+  const tactic = defaultTactic(Object.values(players).filter((p) => p.clubId === opts.clubId));
+
   return {
     version: SAVE_VERSION,
     date,
     season,
+    seasonData,
+    tactic,
     manager: { ...opts.manager, clubId: opts.clubId },
     clubs,
     leagues,
@@ -187,7 +194,7 @@ export function databaseFromGame(state: GameState): Database {
     version: 1,
     name: `Databáza z hry ${state.manager.name} (${state.date})`,
     season: state.season,
-    leagues: leagueList.map((l) => ({ id: l.id, name: l.name, country: l.country, tier: l.tier })),
+    leagues: leagueList.map((l) => ({ id: l.id, name: l.name, country: l.country, tier: l.tier, ...(l.split ? { split: l.split } : {}) })),
     clubs: Object.values(state.clubs).map((c) => ({
       id: c.id,
       name: c.name,

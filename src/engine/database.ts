@@ -7,7 +7,7 @@ import { NAMES } from '../data/names';
 import { parseCsv, toCsv } from './csv';
 import { generateSquad, pickNationality, randomName } from './generator';
 import { Rng } from './rng';
-import type { Position, StaffRole } from './types';
+import type { Position, SplitGroup, StaffRole } from './types';
 
 export const DB_FORMAT = 'futbalovy-manazer-databaza';
 export const DB_VERSION = 1;
@@ -17,6 +17,8 @@ export interface DbLeague {
   name: string;
   country: 'CZ' | 'SK';
   tier: 1 | 2;
+  /** Nadstavba po základnej časti */
+  split?: SplitGroup[];
 }
 
 export interface DbClub {
@@ -105,7 +107,7 @@ export function buildDefaultDatabase(): Database {
   const staff: DbStaff[] = [];
 
   for (const l of LEAGUES) {
-    leagues.push({ id: l.id, name: l.name, country: l.country, tier: l.tier });
+    leagues.push({ id: l.id, name: l.name, country: l.country, tier: l.tier, ...(l.split ? { split: l.split } : {}) });
     for (const c of l.clubs) {
       clubs.push({
         id: c.id,
@@ -210,6 +212,9 @@ export function validateDatabase(db: Database): string[] {
   for (const l of db.leagues ?? []) {
     const count = (db.clubs ?? []).filter((c) => c.leagueId === l.id).length;
     if (count < 4 || count % 2 !== 0) err(`Liga „${l.name}“ má ${count} klubov – potrebný je párny počet, aspoň 4.`);
+    for (const g of l.split ?? []) {
+      if (g.from < 1 || g.to > count || g.to - g.from < 1) err(`Liga „${l.name}“: nadstavba ${g.from}–${g.to} nesedí s počtom klubov.`);
+    }
   }
   const playerIds = new Set<string>();
   for (const p of db.players ?? []) {
@@ -234,7 +239,7 @@ export function validateDatabase(db: Database): string[] {
 export function parseDatabaseJson(text: string): Database {
   let db: Database;
   try {
-    db = JSON.parse(text.replace(/^﻿/, ''));
+    db = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch {
     throw new Error('Súbor nie je platný JSON.');
   }
@@ -249,7 +254,7 @@ export function parseDatabaseJson(text: string): Database {
 export type DbTable = 'ligy' | 'kluby' | 'hraci' | 'zamestnanci';
 
 const HEADERS: Record<DbTable, string[]> = {
-  ligy: ['id', 'nazov', 'krajina', 'uroven'],
+  ligy: ['id', 'nazov', 'krajina', 'uroven', 'nadstavba'],
   kluby: ['id', 'nazov', 'kratky_nazov', 'skratka', 'krajina', 'liga', 'mesto', 'stadion', 'kapacita', 'farba1', 'farba2', 'sila', 'rozpocet', 'b_tim_klubu', 'logo'],
   hraci: ['id', 'meno', 'priezvisko', 'narodnost', 'datum_narodenia', 'pozicia', 'klub', 'fyzicke', 'technicke', 'obranne', 'utocne', 'brankarske', 'potencial', 'zmluva_do', 'plat'],
   zamestnanci: ['id', 'meno', 'priezvisko', 'narodnost', 'datum_narodenia', 'funkcia', 'klub', 'kvalita'],
@@ -260,7 +265,7 @@ const posOut = (p: Position) => (p === 'U' ? 'Ú' : p);
 /** Prevedie databázu na tabuľky CSV (názov súboru → obsah) */
 export function databaseToCsv(db: Database): Record<DbTable, string> {
   return {
-    ligy: toCsv(HEADERS.ligy, db.leagues.map((l) => [l.id, l.name, l.country, l.tier])),
+    ligy: toCsv(HEADERS.ligy, db.leagues.map((l) => [l.id, l.name, l.country, l.tier, splitToText(l.split)])),
     kluby: toCsv(
       HEADERS.kluby,
       db.clubs.map((c) => [c.id, c.name, c.shortName, c.abbr, c.country, c.leagueId, c.city, c.stadium, c.capacity, c.colors[0], c.colors[1], c.reputation, c.balance, c.reserveOf, c.logo]),
@@ -281,6 +286,19 @@ export function databaseToCsv(db: Database): Record<DbTable, string> {
 }
 
 const num = (v: number | null) => (v === null ? '' : Math.round(v));
+
+/** Nadstavba v CSV: "1-6 Skupina o titul | 11-16 Skupina o záchranu" */
+function splitToText(split?: SplitGroup[]): string {
+  return (split ?? []).map((g) => `${g.from}-${g.to} ${g.name}`).join(' | ');
+}
+
+function splitFromText(text: string): SplitGroup[] {
+  return text
+    .split('|')
+    .map((part) => part.trim().match(/^(\d+)\s*-\s*(\d+)\s*(.*)$/))
+    .filter((m): m is RegExpMatchArray => !!m)
+    .map((m) => ({ from: Number(m[1]), to: Number(m[2]), name: m[3].trim() || 'Skupina' }));
+}
 
 /** Rozpozná, ktorá tabuľka je v CSV podľa hlavičky */
 function detectTable(rows: Array<Record<string, string>>, fileName: string): DbTable | null {
@@ -331,7 +349,16 @@ export function mergeCsvIntoDatabase(base: Database, files: Array<{ name: string
     tables.push(t);
     const get = (r: Record<string, string>, k: string) => r[k] ?? '';
     if (t === 'ligy') {
-      db.leagues = rows.map((r) => ({ id: get(r, 'id'), name: get(r, 'nazov'), country: get(r, 'krajina').toUpperCase() as 'CZ' | 'SK', tier: (toNum(get(r, 'uroven')) ?? 1) as 1 | 2 }));
+      db.leagues = rows.map((r) => {
+        const split = splitFromText(get(r, 'nadstavba'));
+        return {
+          id: get(r, 'id'),
+          name: get(r, 'nazov'),
+          country: get(r, 'krajina').toUpperCase() as 'CZ' | 'SK',
+          tier: (toNum(get(r, 'uroven')) ?? 1) as 1 | 2,
+          ...(split.length ? { split } : {}),
+        };
+      });
     } else if (t === 'kluby') {
       db.clubs = rows.map((r) => ({
         id: get(r, 'id'),

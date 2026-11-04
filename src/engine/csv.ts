@@ -12,12 +12,12 @@ function escape(v: unknown): string {
 export function toCsv(header: string[], rows: unknown[][]): string {
   const lines = [header.join(CSV_SEP), ...rows.map((r) => r.map(escape).join(CSV_SEP))];
   // BOM, aby Excel správne zobrazil diakritiku
-  return '﻿' + lines.join('\r\n') + '\r\n';
+  return '\uFEFF' + lines.join('\r\n') + '\r\n';
 }
 
 /** Načíta CSV do zoznamu objektov podľa hlavičky. Rozpozná oddeľovač ";" aj ",". */
 export function parseCsv(text: string): Array<Record<string, string>> {
-  text = text.replace(/^﻿/, '');
+  text = text.replace(/^\uFEFF/, '');
   const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
   const sep = (firstLine.match(/;/g)?.length ?? 0) >= (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
 

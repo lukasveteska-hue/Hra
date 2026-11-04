@@ -199,7 +199,12 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 
 - **Česko:** 1. liga (16 klubov) a 2. liga, s postupmi a zostupmi.
 - **Slovensko:** 1. liga (12 klubov) a 2. liga, s postupmi a zostupmi.
-- **Formát podľa reality vrátane nadstavby** (základná časť, potom skupina o titul a skupina o záchranu). Presný aktuálny formát oboch líg sa overí pri príprave dát.
+- **Formát podľa reality vrátane nadstavby** (základná časť, potom skupina o titul a skupina o záchranu, body sa prenášajú):
+  - Chance Liga: 16 klubov, 30 kôl, potom skupina o titul (1.–6.) a skupina o záchranu (11.–16.), každá 10 kôl. Kluby 7.–10. sezónu končia po základnej časti.
+  - Niké liga: 12 klubov, 22 kôl, potom skupina o titul (1.–6.) a o záchranu (7.–12.), každá 10 kôl.
+  - 2. ligy: 16 klubov, 30 kôl, bez nadstavby.
+  - Nadstavba sa dá v databáze zmeniť (stĺpec `nadstavba` v tabuľke líg).
+  - Kolá v soboty, pri nedostatku termínov aj v stredu; zimná prestávka od polovice decembra do začiatku februára.
 - **Finančná úroveň:** česká liga je o trochu bohatšia ako slovenská (vyššie platy, ceny hráčov, TV peniaze, sponzori), približne podľa reality.
 - **Cudzinci:** bez obmedzenia.
 - **Domáci pohár** v oboch krajinách (vyraďovací systém, víťaz ide do Európy).

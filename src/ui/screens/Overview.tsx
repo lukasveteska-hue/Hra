@@ -2,7 +2,11 @@ import { leagueOf, squadOf, wageBill } from '../../engine/game';
 import { marketValue, ovr } from '../../engine/ratings';
 import { countryName } from '../../data/countries';
 import { useGame } from '../GameContext';
-import { formatDate, money, Flag } from '../common';
+import { formatDate, money, Flag, ClubBadge } from '../common';
+import { isMine } from '../../engine/advance';
+import { standings } from '../../engine/standings';
+import { formatDateShort } from '../dates';
+import { FixtureList } from './League';
 
 export function Overview({ openClub }: { openClub: (id: string) => void }) {
   const { state } = useGame();
@@ -12,11 +16,11 @@ export function Overview({ openClub }: { openClub: (id: string) => void }) {
   const top11 = squad.map(ovr).sort((a, b) => b - a).slice(0, 11);
   const avg = top11.reduce((a, b) => a + b, 0) / Math.max(1, top11.length);
   const value = squad.reduce((s, p) => s + marketValue(p, state.date, state.season), 0);
-  const leagueRank = league
-    ? [...league.clubIds]
-        .sort((a, b) => state.clubs[b].reputation - state.clubs[a].reputation)
-        .indexOf(club.id) + 1
-    : null;
+  const leagueRank = league ? standings(state, league.id).findIndex((r) => r.clubId === club.id) + 1 : null;
+  const myFixtures = state.seasonData.fixtures.filter((f) => isMine(state, f));
+  const next = myFixtures.find((f) => !f.played);
+  const recent = myFixtures.filter((f) => f.played).slice(-3);
+  const upcoming = myFixtures.filter((f) => !f.played).slice(0, 5);
 
   return (
     <>
@@ -36,7 +40,40 @@ export function Overview({ openClub }: { openClub: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="grid-2" style={{ marginTop: 16 }}>
+      {next && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <h3>Najbližší zápas</h3>
+          <div className="row">
+            <span className="club-cell">
+              <ClubBadge club={state.clubs[next.homeId]} size={26} />
+              <strong>{state.clubs[next.homeId].shortName}</strong>
+            </span>
+            <span className="muted">–</span>
+            <span className="club-cell">
+              <ClubBadge club={state.clubs[next.awayId]} size={26} />
+              <strong>{state.clubs[next.awayId].shortName}</strong>
+            </span>
+            <div className="spacer" />
+            <span className="muted">
+              {formatDateShort(next.date)} {next.date.slice(0, 4)} · {next.round}. kolo
+              {next.date === state.date ? ' · DNES' : ''}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="grid-2">
+        <div className="panel">
+          <h3>Posledné výsledky</h3>
+          {recent.length ? <FixtureList fixtures={recent} showDate /> : <div className="muted">Sezóna ešte nezačala.</div>}
+        </div>
+        <div className="panel">
+          <h3>Program</h3>
+          {upcoming.length ? <FixtureList fixtures={upcoming} showDate /> : <div className="muted">Žiadne ďalšie zápasy.</div>}
+        </div>
+      </div>
+
+      <div className="grid-2">
         <div className="panel">
           <h3>Klub</h3>
           <dl className="kv">
@@ -54,7 +91,7 @@ export function Overview({ openClub }: { openClub: (id: string) => void }) {
             </dd>
             <dt>Liga</dt>
             <dd>{league?.name}</dd>
-            <dt>Sila v lige</dt>
+            <dt>Miesto v tabuľke</dt>
             <dd>
               {leagueRank}. z {league?.clubIds.length}
             </dd>
