@@ -17,7 +17,7 @@ Hlavná myšlienka: **začať so slabým klubom, zarábať na prestupoch a postu
 | Jazyk | TypeScript |
 | Obrazovky | React |
 | Spúšťanie a zostavenie | Vite |
-| Ukladanie | v prehliadači (IndexedDB), viac uložených hier, export/import do súboru |
+| Ukladanie | v prehliadači (IndexedDB), ukladanie kedykoľvek do viacerých pozícií + automatické ukladanie, export/import do súboru |
 | Server | nie je potrebný |
 
 Herná logika (simulácia, prestupy, financie) je oddelená od obrazoviek, aby sa dala samostatne testovať.
@@ -66,8 +66,10 @@ Vypočíta sa z atribútov s váhami podľa pozície (útočník: najviac Útoč
 
 ### Ďalšie vlastnosti
 - **Vek:** rast do 24–27 rokov, vrchol 27–30, od 31 rokov pokles.
-- **Kondícia** (0–100 %): klesá po zápase, obnovuje sa medzi zápasmi.
-- **Forma:** podľa posledných výkonov.
+- **Kondícia / energia** (0–100 %): klesá po zápase, obnovuje sa medzi zápasmi. Hráč môže hrať vždy, ale nižšia energia znižuje jeho výkon. Starší hráči sa unavujú rýchlejšie.
+- **Forma:** zobrazená šípkami (5 úrovní), mení sa po kolách, zlepšuje sa aj v priateľských zápasoch.
+- **Odohrané zápasy (skrytý bonus):** čím viac zápasov hráč v kariére odohral, tým väčší malý skrytý bonus k výkonu v zápase.
+- **Koniec kariéry:** hráči končia medzi 33 a 40 rokmi (brankári najneskôr, útočníci najskôr).
 - **Morálka:** klesá, keď hráč nehrá; ovplyvňuje výkon.
 - **Zranenia, karty, tresty.**
 - **Zmluva:** plat a dátum konca zmluvy.
@@ -87,16 +89,22 @@ Vypočíta sa z atribútov s váhami podľa pozície (útočník: najviac Útoč
 ## 4. Začiatok hry a kariéra
 
 - Výber ľubovoľného klubu z 1. alebo 2. ligy CZ alebo SK.
-- **Vedenie klubu** stanoví cieľ sezóny (záchrana, stred tabuľky, Európa, titul). Pri dlhodobom neúspechu môže trénera vyhodiť.
-- Pri úspechu môžu prísť ponuky od iných klubov.
+- Kariéra je **neobmedzená** (bez pevného počtu sezón).
+- **Klub sa dá zmeniť len medzi sezónami.**
+- **Vedenie klubu** stanoví ciele sezóny (liga, pohár, Európa). Na konci sezóny ohodnotí sezónu na päťstupňovej škále: výborná / úspešná / prijateľná / neúspešná / katastrofálna.
+- **Vyhodenie:** po katastrofálnej sezóne alebo po dvoch neúspešných sezónach po sebe.
+- **Ponuky od klubov** (len CZ/SK kluby) medzi sezónami podľa výsledkov posledných dvoch sezón (pri úspechu lepšie kluby, pri neúspechu slabšie).
 
 ---
 
 ## 5. Káder, zostava, taktika
 
-- Káder 18–30 hráčov, zápasová súpiska 11 + 7 náhradníkov.
-- Formácie: 4-4-2, 4-3-3, 3-5-2, 4-5-1, 5-3-2, 4-2-3-1 a ďalšie.
-- Štýl: defenzívny, vyvážený, ofenzívny, protiútoky, presing.
+- Káder 18–30 hráčov, zápasová súpiska 11 + náhradníci a striedania podľa reálnych pravidiel (9 náhradníkov, 5 striedaní v 3 prestávkach).
+- **Karty:** červená = stop (1 a viac zápasov), nazbierané žlté karty = stop na 1 zápas (podľa pravidiel súťaže).
+- Formácie: 4-4-2, 4-3-3, 3-5-2, 4-5-1, 5-3-2, 5-4-1, 4-2-3-1 a ďalšie.
+- **Útočnosť:** posuvník 0–100. Vyššia útočnosť pomáha útočníkom v súbojoch, ale oslabuje obranu.
+- **Štýl hry:** normálny / krátke prihrávky / centre / nábehy.
+- **Kapitán:** tím s kapitánom má menšiu šancu na pokles formy.
 - Hra mimo pozície je možná, ale s výrazným postihom.
 
 ---
@@ -139,6 +147,7 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 - Môžem hráča dať na prestupovú listinu a nastaviť požadovanú cenu.
 - **AI kluby často posielajú ponuky**, aj na hráčov, ktorí nie sú na listine (najmä na talenty a hráčov vo forme).
 - Ponuky chodia od CZ/SK klubov aj od zahraničných klubov. Zahraničie platí najviac.
+- **Rozdiely v cenách medzi ligami:** hráči z CZ/SK líg sú lacní, kluby z bohatých líg platia násobne viac. Po prestupe do inej ligy sa cena hráča mení postupne (počas niekoľkých desiatok zápasov), aby sa nedalo okamžite zarobiť na preskakovaní.
 - Na ponuku môžem: prijať, odmietnuť, dať protiponuku.
 - Hráčova morálka klesne, keď mu zakážem prestup do veľkého klubu.
 
@@ -159,6 +168,7 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 ### Nie je v hre
 - Hosťovania
 - Skauti (potenciál je viditeľný)
+- Výmeny hráčov
 
 ---
 
@@ -171,13 +181,27 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 4. Výstup: výsledok, strelci, asistencie, karty, zranenia, známky hráčov, krátky textový priebeh.
 5. Zápasy ostatných tímov sa simulujú rovnako (rýchlo, bez textu).
 
+### Zápas naživo
+- Môj zápas sa prehráva **naživo, trvá približne 60 sekúnd** (90 herných minút).
+- Textový priebeh, priebežné skóre, štatistiky.
+- Počas zápasu: striedanie, zmena formácie, útočnosti a štýlu.
+- Výsledok sa nezobrazí vopred. Dĺžka je vždy 60 sekúnd, nedá sa zrýchliť ani preskočiť.
+- **Ostatné zápasy kola** bežia súčasne a ich priebežné výsledky sa zobrazujú naživo.
+- Domáce prostredie má výrazný vplyv.
+
+### Priateľské zápasy
+- V lete a v zime počas prípravy.
+- Hlavne prinášajú **peniaze**, zlepšujú formu.
+
 ---
 
 ## 11. Súťaže
 
 - **Česko:** 1. liga (16 klubov) a 2. liga, s postupmi a zostupmi.
 - **Slovensko:** 1. liga (12 klubov) a 2. liga, s postupmi a zostupmi.
-- Na začiatok systém každý s každým doma a vonku. Nadstavby (skupina o titul / o záchranu) neskôr.
+- **Formát podľa reality vrátane nadstavby** (základná časť, potom skupina o titul a skupina o záchranu). Presný aktuálny formát oboch líg sa overí pri príprave dát.
+- **Finančná úroveň:** česká liga je o trochu bohatšia ako slovenská (vyššie platy, ceny hráčov, TV peniaze, sponzori), približne podľa reality.
+- **Cudzinci:** bez obmedzenia.
 - **Domáci pohár** v oboch krajinách (vyraďovací systém, víťaz ide do Európy).
 - **Liga majstrov, Európska liga, Konferenčná liga:** reálne zahraničné kluby, miesta podľa umiestnenia v lige, predkolá, ligová fáza, vyraďovačka. Zahraničné ligy sa nesimulujú.
 
@@ -202,6 +226,12 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 ## 14. Dáta
 
 - Reálne kluby a reálni hráči českej a slovenskej ligy (1. aj 2. liga).
+- **Zahraničné kluby (európske poháre):** všetky majú reálny názov.
+  - Hlavné európske kluby majú reálnych hráčov.
+  - Ostatné majú **generovaných hráčov**.
+  - Výber klubov s reálnymi hráčmi: približne 40 klubov, ktoré pravidelne hrajú Ligu majstrov (Anglicko, Španielsko, Nemecko, Taliansko, Francúzsko, Portugalsko, Holandsko a niekoľko ďalších).
+- **Sezóna: aktuálna 2026/27**, aktuálne súpisky.
+- **Generátor hráčov:** vytvára hráčov s menom podľa krajiny (napr. poľské, chorvátske mená), pozíciou, vekom, atribútmi a potenciálom podľa sily klubu. Používa sa aj pre mládežníkov a voľných hráčov.
 - Atribúty a potenciál sú odhady, dajú sa upraviť.
 - Dáta budú v samostatných súboroch, aby sa dali ľahko opravovať a aktualizovať.
 
