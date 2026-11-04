@@ -108,3 +108,19 @@ describe('prestupy a financie počas sezóny', () => {
     expect(s.seasonData.posHistory?.CZ1.length).toBeGreaterThan(30);
   });
 });
+
+describe('baráž', () => {
+  const s = playSeason('zlin', 13);
+  it('sa odohrá a určí postupy a zostupy', () => {
+    const po = s.seasonData.fixtures.filter((f) => f.leagueId.startsWith('PO-'));
+    expect(po).toHaveLength(6);
+    expect(po.every((f) => f.played)).toBe(true);
+    const moves = s.seasonData.moves ?? [];
+    console.log('presuny', moves.map((m) => `${s.clubs[m.clubId].shortName} ${m.from}→${m.to} (${m.reason})`).join(', '));
+    const up = moves.filter((m) => m.to === 'CZ1').length;
+    const down = moves.filter((m) => m.from === 'CZ1').length;
+    expect(up).toBe(down);
+    expect(up).toBeGreaterThanOrEqual(1);
+    expect(moves.every((m) => !s.clubs[m.clubId].reserveOf || m.to !== 'CZ1')).toBe(true);
+  });
+});

@@ -10,6 +10,7 @@ import { weatherFor } from './weather';
 import { addMoney, matchdayIncome, monthlyFinance, seasonPrizes, squadValue } from './finance';
 import { finishProjects } from './management';
 import { monthlyDevelopment } from './development';
+import { createPlayoffsIfReady, playoffsDone, resolvePlayoffsIfReady } from './playoffs';
 import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
@@ -37,7 +38,7 @@ export function nextMyFixture(state: GameState): Fixture | null {
 }
 
 export function seasonFinished(state: GameState): boolean {
-  return state.seasonData.fixtures.every((f) => f.played) && Object.values(state.seasonData.splitDone).every(Boolean);
+  return state.seasonData.fixtures.every((f) => f.played) && Object.values(state.seasonData.splitDone).every(Boolean) && playoffsDone(state);
 }
 
 /** Taktika pre klub v zápase (počítač) */
@@ -176,6 +177,8 @@ function endDay(state: GameState, rng: Rng): number {
       state.news.push({ date: state.date, text: `${state.leagues[id].name}: základná časť skončila, začína nadstavba.` });
     }
   }
+  createPlayoffsIfReady(state);
+  resolvePlayoffsIfReady(state, rng);
   const before = transferWindow(state.date);
   state.date = addDays(state.date, 1);
   dailyUpdate(state);
@@ -241,6 +244,8 @@ export function finishMyMatch(state: GameState, results: Array<{ fixtureId: stri
   const s = cloneState(state);
   const rng = new Rng(rngState);
   for (const { fixtureId, result } of results) applyResult(s, fixtureId, result, rng);
+  createPlayoffsIfReady(s);
+  resolvePlayoffsIfReady(s, rng);
   if (seasonFinished(s)) {
     snapshotTables(s);
     seasonPrizes(s);

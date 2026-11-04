@@ -231,9 +231,9 @@ export interface SeasonData {
   prizesPaid?: boolean;
   /** Cieľ vedenia: umiestnenie do tohto miesta */
   boardTarget?: number;
-  /** Baráž: či už bola vytvorená a vyhodnotená */
-  playoffsCreated?: boolean;
-  playoffsResolved?: boolean;
+  /** Baráž podľa krajiny: či už bola vytvorená a vyhodnotená */
+  playoffsCreated?: Record<string, boolean>;
+  playoffsResolved?: Record<string, boolean>;
   /** Výsledky baráže a postupy/zostupy pripravené na novú sezónu */
   moves?: LeagueMove[];
 }
