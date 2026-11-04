@@ -42,7 +42,7 @@ export function GameShell() {
     <div className="app">
       <header className="topbar">
         <div className="club">
-          <ClubBadge colors={club.colors} abbr={club.abbr} size={30} />
+          <ClubBadge club={club} size={30} />
           <div style={{ minWidth: 0 }}>
             <div className="club-name">{club.name}</div>
             <div className="muted" style={{ fontSize: 12 }}>

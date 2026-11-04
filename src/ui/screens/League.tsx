@@ -10,14 +10,14 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
   const myLeague = state.clubs[state.manager.clubId].leagueId ?? 'CZ1';
   const [leagueId, setLeagueId] = useState(myLeague);
   const league = state.leagues[leagueId];
-  const clubs = league.clubIds.map((id) => state.clubs[id]);
+  // Pred začiatkom sezóny zoradené podľa abecedy
+  const clubs = league.clubIds.map((id) => state.clubs[id]).sort((a, b) => a.shortName.localeCompare(b.shortName, 'sk'));
 
   const strength = (c: Club) => {
     const s = squadOf(state, c.id).map(ovr).sort((a, b) => b - a).slice(0, 11);
     return s.reduce((a, b) => a + b, 0) / Math.max(1, s.length);
   };
 
-  // Tabuľka zatiaľ bez odohraných zápasov – zoradená podľa abecedy
   const columns: Column<Club>[] = [
     { key: 'rank', label: '#', className: 'num', render: (c) => clubs.indexOf(c) + 1 },
     {
@@ -26,7 +26,7 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
       sticky: true,
       render: (c) => (
         <button className="link club-cell" onClick={() => openClub(c.id)}>
-          <ClubBadge colors={c.colors} abbr={c.abbr} size={18} />
+          <ClubBadge club={c} size={18} />
           {c.shortName}
         </button>
       ),
@@ -57,7 +57,7 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
         Sezóna ešte nezačala. Zápasy a tabuľka pribudnú v ďalšej fáze.
       </p>
       <DataTable
-        rows={[...clubs].sort((a, b) => a.shortName.localeCompare(b.shortName, 'sk'))}
+        rows={clubs}
         columns={columns}
         rowKey={(c) => c.id}
         rowClass={(c) => (c.id === state.manager.clubId ? 'highlight' : undefined)}

@@ -5,8 +5,38 @@ import { countryName, flagEmoji } from '../data/countries';
 import { formLevel } from '../engine/ratings';
 import type { Position } from '../engine/types';
 
-/** Malé logo klubu – štít vo farbách klubu so skratkou */
-export function ClubBadge({ colors, abbr, size = 28 }: { colors: [string, string]; abbr: string; size?: number }) {
+interface BadgeClub {
+  colors: [string, string];
+  abbr: string;
+  logo?: string | null;
+}
+
+/** Adresa loga – relatívna cesta sa berie od koreňa hry */
+export function logoUrl(logo: string): string {
+  if (/^(https?:|data:|blob:)/.test(logo)) return logo;
+  return `${import.meta.env.BASE_URL}${logo.replace(/^\//, '')}`;
+}
+
+/** Malé logo klubu – obrázok, a ak chýba, štít vo farbách klubu */
+export function ClubBadge({ club, size = 28 }: { club: BadgeClub; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  if (club.logo && !failed) {
+    return (
+      <img
+        src={logoUrl(club.logo)}
+        alt={club.abbr}
+        width={size}
+        height={size}
+        loading="lazy"
+        style={{ objectFit: 'contain', flexShrink: 0 }}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return <ShieldBadge colors={club.colors} abbr={club.abbr} size={size} />;
+}
+
+function ShieldBadge({ colors, abbr, size }: { colors: [string, string]; abbr: string; size: number }) {
   const [a, b] = colors;
   const id = `g-${abbr}-${a.slice(1)}-${b.slice(1)}`;
   return (

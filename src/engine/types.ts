@@ -80,6 +80,23 @@ export interface Club {
   balance: number;
   /** B-tím (nemôže postúpiť do ligy, kde hrá A-tím) */
   reserveOf?: string;
+  /** Cesta alebo adresa loga, napr. "logos/slavia.png" */
+  logo?: string | null;
+}
+
+/** Funkcia zamestnanca klubu */
+export type StaffRole = 'trener' | 'asistent' | 'brankar_trener' | 'kondicny_trener' | 'lekar';
+
+export interface Staff {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  birthDate: string;
+  role: StaffRole;
+  clubId: string | null;
+  /** Kvalita 1–99 */
+  quality: number;
 }
 
 export interface League {
@@ -112,6 +129,9 @@ export interface GameState {
   clubs: Record<string, Club>;
   leagues: Record<string, League>;
   players: Record<string, Player>;
+  staff: Record<string, Staff>;
+  /** Názov databázy, z ktorej hra vznikla */
+  databaseName: string;
   news: NewsItem[];
   /** Stav generátora náhodných čísel */
   rngState: number;

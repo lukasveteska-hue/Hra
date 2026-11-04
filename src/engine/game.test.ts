@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { newGame, squadOf } from './game';
-import { marketValue, ovr } from './ratings';
+import { buildDefaultDatabase, databaseToCsv, mergeCsvIntoDatabase, validateDatabase } from './database';
+import { databaseFromGame, newGame, squadOf } from './game';
+import { ovr } from './ratings';
+
+const db = buildDefaultDatabase();
+const manager = { name: 'Test', nationality: 'SK', age: 40 };
+
+describe('predvolená databáza', () => {
+  it('je platná a vždy rovnaká', () => {
+    expect(validateDatabase(db)).toEqual([]);
+    expect(buildDefaultDatabase().players[0]).toEqual(db.players[0]);
+    expect(db.clubs).toHaveLength(60);
+  });
+});
 
 describe('nová hra', () => {
-  const state = newGame({ manager: { name: 'Test', nationality: 'SK', age: 40 }, clubId: 'zlin', seed: 42 });
+  const state = newGame(db, { manager, clubId: 'zlin', seed: 42 });
 
-  it('každý klub má 25 hráčov', () => {
+  it('každý klub má aspoň 22 hráčov', () => {
     for (const c of Object.values(state.clubs)) {
-      expect(squadOf(state, c.id)).toHaveLength(25);
+      expect(squadOf(state, c.id).length).toBeGreaterThanOrEqual(22);
     }
   });
 
@@ -18,6 +30,7 @@ describe('nová hra', () => {
         expect(v).toBeLessThanOrEqual(99);
       }
       expect(p.potential).toBeGreaterThanOrEqual(Math.floor(ovr(p)));
+      expect(p.wage).toBeGreaterThan(0);
     }
   });
 
@@ -30,13 +43,46 @@ describe('nová hra', () => {
     expect(avg('zlin')).toBeGreaterThan(avg('malzenice'));
   });
 
-  it('vypíše prehľad', () => {
-    for (const id of ['slavia', 'zlin', 'slovan', 'karvina', 'malzenice']) {
-      const s = squadOf(state, id);
-      const top = s.map(ovr).sort((a, b) => b - a).slice(0, 11);
-      const val = s.reduce((a, p) => a + marketValue(p, state.date, state.season), 0);
-      const wages = s.reduce((a, p) => a + p.wage, 0);
-      console.log(id, 'top11', Math.round(top.reduce((a, b) => a + b) / 11), 'hodnota', Math.round(val / 1e5) / 10, 'mil', 'platy/mes', wages, 'účet', state.clubs[id].balance);
-    }
+  it('môj klub nemá ďalšieho hlavného trénera', () => {
+    expect(Object.values(state.staff).some((s) => s.clubId === 'zlin' && s.role === 'trener')).toBe(false);
+  });
+
+  it('databáza z hry je platná', () => {
+    expect(validateDatabase(databaseFromGame(state))).toEqual([]);
+  });
+});
+
+describe('CSV', () => {
+  it('export a import vráti rovnakých hráčov', () => {
+    const csv = databaseToCsv(db);
+    const { db: back, tables } = mergeCsvIntoDatabase(db, Object.entries(csv).map(([name, text]) => ({ name: `${name}.csv`, text })));
+    expect(tables.sort()).toEqual(['hraci', 'kluby', 'ligy', 'zamestnanci']);
+    expect(validateDatabase(back)).toEqual([]);
+    expect(back.players).toHaveLength(db.players.length);
+    const a = db.players[5];
+    const b = back.players[5];
+    expect(b.lastName).toBe(a.lastName);
+    expect(b.position).toBe(a.position);
+    expect(b.fyz).toBe(Math.round(a.fyz!));
+    expect(back.clubs[0]).toMatchObject({ id: db.clubs[0].id, name: db.clubs[0].name, colors: db.clubs[0].colors });
+  });
+
+  it('hráči len s menom a klubom dostanú odhadnuté atribúty', () => {
+    const csv = 'id;meno;priezvisko;narodnost;datum_narodenia;pozicia;klub\nx1;Ján;Skúšobný;SK;15.3.2001;Ú;zlin\n';
+    const { db: small } = mergeCsvIntoDatabase(db, [{ name: 'hraci.csv', text: csv }]);
+    expect(validateDatabase(small)).toEqual([]);
+    const state = newGame(small, { manager, clubId: 'zlin', seed: 1 });
+    const p = state.players.x1;
+    expect(p.birthDate).toBe('2001-03-15');
+    expect(p.position).toBe('U');
+    expect(ovr(p)).toBeGreaterThan(30);
+    // Ostatné kluby boli doplnené
+    expect(squadOf(state, 'slavia').length).toBeGreaterThanOrEqual(22);
+  });
+
+  it('chybná databáza sa odmietne', () => {
+    const csv = 'id;meno;priezvisko;narodnost;datum_narodenia;pozicia;klub\nx1;Ján;Chyba;SK;2001-03-15;X;neexistuje\n';
+    const { db: bad } = mergeCsvIntoDatabase(db, [{ name: 'hraci.csv', text: csv }]);
+    expect(validateDatabase(bad).length).toBe(2);
   });
 });

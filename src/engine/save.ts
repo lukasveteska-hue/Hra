@@ -48,16 +48,23 @@ export async function deleteSave(slot: string): Promise<void> {
   await set(INDEX_KEY, index.filter((m) => m.slot !== slot));
 }
 
-/** Export uloženej hry do súboru JSON */
-export function exportToFile(state: GameState): void {
-  const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+/** Stiahnutie textu ako súboru */
+export function downloadText(fileName: string, text: string, mime = 'application/json'): void {
+  const blob = new Blob([text], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const club = state.clubs[state.manager.clubId]?.shortName ?? 'hra';
   a.href = url;
-  a.download = `manazer-${club}-${state.date}.json`.replace(/\s+/g, '_');
+  a.download = fileName.replace(/\s+/g, '_');
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Export uloženej hry do súboru JSON */
+export function exportToFile(state: GameState): void {
+  const club = state.clubs[state.manager.clubId]?.shortName ?? 'hra';
+  downloadText(`manazer-${club}-${state.date}.json`, JSON.stringify(state));
 }
 
 export async function importFromFile(file: File): Promise<GameState> {
@@ -73,6 +80,11 @@ export async function importFromFile(file: File): Promise<GameState> {
 function migrate(state: GameState): GameState {
   if (state.version > SAVE_VERSION) {
     throw new Error('Uložená hra je z novšej verzie hry.');
+  }
+  if (state.version < 2) {
+    state.staff ??= {};
+    state.databaseName ??= 'Predvolená databáza 2026/27';
+    state.version = 2;
   }
   return state;
 }

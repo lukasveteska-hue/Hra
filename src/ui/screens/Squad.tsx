@@ -3,6 +3,7 @@ import { squadOf } from '../../engine/game';
 import type { Player } from '../../engine/types';
 import { useGame } from '../GameContext';
 import { PlayerDetail, PlayerTable } from '../players';
+import { StaffList } from './Club';
 
 export function SquadScreen() {
   const { state } = useGame();
@@ -16,6 +17,7 @@ export function SquadScreen() {
         Kliknutím na hlavičku stĺpca zoradíš tabuľku, kliknutím na hráča otvoríš detail.
       </p>
       <PlayerTable players={squad} onSelect={setSelected} />
+      <StaffList clubId={state.manager.clubId} />
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} />}
     </>
   );

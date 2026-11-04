@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { exportToFile, listSaves, saveGame, type SaveMeta } from '../../engine/save';
+import { downloadText, exportToFile, listSaves, saveGame, type SaveMeta } from '../../engine/save';
+import { databaseFromGame } from '../../engine/game';
 import { useGame } from '../GameContext';
 
 export function SaveScreen() {
@@ -70,7 +71,15 @@ export function SaveScreen() {
         <p className="muted" style={{ marginTop: 0 }}>
           Záloha alebo prenos hry na iné zariadenie (napr. z počítača do mobilu).
         </p>
-        <button onClick={() => exportToFile(state)}>Stiahnuť hru do súboru</button>
+        <div className="row">
+          <button onClick={() => exportToFile(state)}>Stiahnuť hru do súboru</button>
+          <button onClick={() => downloadText(`databaza-${state.date}.json`, JSON.stringify(databaseFromGame(state), null, 1))}>
+            Stiahnuť aktuálnych hráčov ako databázu
+          </button>
+        </div>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Databáza z hry obsahuje hráčov a kluby v aktuálnom stave. Dá sa nahrať v hlavnom menu a začať z nej novú hru.
+        </p>
       </div>
 
       <button

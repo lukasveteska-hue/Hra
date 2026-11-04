@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { leagueOf, squadOf, wageBill } from '../../engine/game';
+import { leagueOf, squadOf, staffOf, wageBill } from '../../engine/game';
+import { STAFF_ROLES } from '../../engine/database';
+import { ageOn } from '../../engine/ratings';
 import { marketValue } from '../../engine/ratings';
 import type { Player } from '../../engine/types';
 import { useGame } from '../GameContext';
-import { ClubBadge, money } from '../common';
+import { Attr, ClubBadge, Flag, money } from '../common';
 import { PlayerDetail, PlayerTable } from '../players';
 
 export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => void }) {
@@ -19,7 +21,7 @@ export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => v
         <button onClick={onBack}>← Späť</button>
       </div>
       <div className="row" style={{ marginBottom: 16 }}>
-        <ClubBadge colors={club.colors} abbr={club.abbr} size={44} />
+        <ClubBadge club={club} size={44} />
         <div>
           <h1 style={{ margin: 0 }}>{club.name}</h1>
           <div className="muted">
@@ -42,7 +44,60 @@ export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => v
         </div>
       </div>
       <PlayerTable players={squad} onSelect={setSelected} />
+      <StaffList clubId={clubId} />
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} />}
     </>
+  );
+}
+
+export function StaffList({ clubId }: { clubId: string }) {
+  const { state } = useGame();
+  const staff = staffOf(state, clubId);
+  const isMine = clubId === state.manager.clubId;
+  return (
+    <div className="panel" style={{ marginTop: 16 }}>
+      <h3>Realizačný tím</h3>
+      <div className="table-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Funkcia</th>
+              <th>Meno</th>
+              <th>Nár</th>
+              <th className="num">Vek</th>
+              <th className="num">Kvalita</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isMine && (
+              <tr className="highlight">
+                <td>{STAFF_ROLES.trener}</td>
+                <td>{state.manager.name} (ty)</td>
+                <td>
+                  <Flag code={state.manager.nationality} />
+                </td>
+                <td className="num">{state.manager.age}</td>
+                <td className="num muted">–</td>
+              </tr>
+            )}
+            {staff.map((s) => (
+              <tr key={s.id}>
+                <td>{STAFF_ROLES[s.role]}</td>
+                <td>
+                  {s.firstName} {s.lastName}
+                </td>
+                <td>
+                  <Flag code={s.nationality} />
+                </td>
+                <td className="num">{ageOn(s.birthDate, state.date)}</td>
+                <td className="num">
+                  <Attr v={s.quality} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

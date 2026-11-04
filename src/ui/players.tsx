@@ -50,7 +50,7 @@ export function PlayerTable({
         const c = p.clubId ? state.clubs[p.clubId] : null;
         return c ? (
           <span className="club-cell">
-            <ClubBadge colors={c.colors} abbr={c.abbr} size={16} />
+            <ClubBadge club={c} size={16} />
             {c.shortName}
           </span>
         ) : (
@@ -126,7 +126,7 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
   return (
     <Modal onClose={onClose}>
       <div className="modal-head">
-        {club && <ClubBadge colors={club.colors} abbr={club.abbr} size={36} />}
+        {club && <ClubBadge club={club} size={36} />}
         <div>
           <h2 style={{ margin: 0 }}>
             {p.firstName} {p.lastName}

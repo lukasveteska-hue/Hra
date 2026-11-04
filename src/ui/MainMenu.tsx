@@ -1,15 +1,17 @@
-// Úvodná obrazovka, nová hra, načítanie
+// Úvodná obrazovka, nová hra, načítanie, databáza
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { COUNTRY_OPTIONS } from '../data/countries';
-import { LEAGUES } from '../data/clubs';
-import { newGame, startingBalance } from '../engine/game';
+import { clubBalance, newGame } from '../engine/game';
+import type { Database } from '../engine/database';
+import { getActiveDatabase } from '../engine/dbstore';
 import { deleteSave, importFromFile, listSaves, loadGame, type SaveMeta } from '../engine/save';
 import type { GameState } from '../engine/types';
 import { ClubBadge, money } from './common';
+import { DatabaseScreen } from './DatabaseScreen';
 
 export function MainMenu({ onStart }: { onStart: (s: GameState) => void }) {
-  const [mode, setMode] = useState<'menu' | 'new' | 'load'>('menu');
+  const [mode, setMode] = useState<'menu' | 'new' | 'load' | 'db'>('menu');
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -24,18 +26,20 @@ export function MainMenu({ onStart }: { onStart: (s: GameState) => void }) {
 
   if (mode === 'new') return <NewGame onBack={() => setMode('menu')} onStart={onStart} />;
   if (mode === 'load') return <LoadGame onBack={() => setMode('menu')} onStart={onStart} />;
+  if (mode === 'db') return <DatabaseScreen onBack={() => setMode('menu')} />;
 
   return (
     <div className="center-page">
       <div className="menu-box">
         <div className="title">⚽ Futbalový manažér</div>
-        <p className="muted">Česká a slovenská liga · sezóna 2026/27</p>
+        <p className="muted">Česká a slovenská liga</p>
         <div className="panel menu-buttons">
           <button className="primary" onClick={() => setMode('new')}>
             Nová hra
           </button>
           <button onClick={() => setMode('load')}>Načítať hru</button>
-          <button onClick={() => fileRef.current?.click()}>Načítať zo súboru…</button>
+          <button onClick={() => fileRef.current?.click()}>Načítať hru zo súboru…</button>
+          <button onClick={() => setMode('db')}>Databáza hráčov a klubov</button>
           <input
             ref={fileRef}
             type="file"
@@ -105,25 +109,51 @@ function LoadGame({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSt
 }
 
 function NewGame({ onBack, onStart }: { onBack: () => void; onStart: (s: GameState) => void }) {
+  const [db, setDb] = useState<Database | null>(null);
   const [name, setName] = useState('');
   const [nationality, setNationality] = useState('SK');
   const [age, setAge] = useState(40);
-  const [leagueId, setLeagueId] = useState('CZ1');
+  const [leagueId, setLeagueId] = useState<string | null>(null);
   const [clubId, setClubId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const league = LEAGUES.find((l) => l.id === leagueId)!;
-  const clubs = useMemo(() => [...league.clubs].sort((a, b) => a.reputation - b.reputation), [league]);
-  const valid = name.trim().length >= 2 && clubId && age >= 25 && age <= 75;
+  useEffect(() => {
+    getActiveDatabase().then(({ db }) => {
+      setDb(db);
+      setLeagueId(db.leagues[0]?.id ?? null);
+    });
+  }, []);
+
+  const clubs = useMemo(
+    () => (db && leagueId ? db.clubs.filter((c) => c.leagueId === leagueId).sort((a, b) => a.reputation - b.reputation) : []),
+    [db, leagueId],
+  );
+  const valid = !!db && name.trim().length >= 2 && !!clubId && age >= 25 && age <= 75;
 
   const start = () => {
-    if (!valid || !clubId) return;
-    onStart(newGame({ manager: { name: name.trim(), nationality, age }, clubId }));
+    if (!valid || !db || !clubId) return;
+    try {
+      onStart(newGame(db, { manager: { name: name.trim(), nationality, age }, clubId }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   };
+
+  if (!db) {
+    return (
+      <div className="center-page">
+        <div className="muted">Načítavam databázu…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="center-page">
       <div className="menu-box wide">
         <h1>Nová hra</h1>
+        <p className="muted" style={{ marginTop: -6 }}>
+          Databáza: {db.name}
+        </p>
 
         <div className="panel">
           <h3>Tréner</h3>
@@ -152,7 +182,7 @@ function NewGame({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSta
         <div className="panel">
           <h3>Klub</h3>
           <div className="tabs">
-            {LEAGUES.map((l) => (
+            {db.leagues.map((l) => (
               <button
                 key={l.id}
                 className={l.id === leagueId ? 'active' : ''}
@@ -171,11 +201,11 @@ function NewGame({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSta
           <div className="club-pick">
             {clubs.map((c) => (
               <button key={c.id} className={c.id === clubId ? 'selected' : ''} onClick={() => setClubId(c.id)}>
-                <ClubBadge colors={c.colors} abbr={c.abbr} size={26} />
+                <ClubBadge club={c} size={26} />
                 <span>
                   <div>{c.name}</div>
                   <div className="meta">
-                    Sila {c.reputation} · {money(startingBalance(c.reputation, league.country))}
+                    Sila {c.reputation} · {money(clubBalance(c))}
                     {c.reserveOf ? ' · B-tím' : ''}
                   </div>
                 </span>
@@ -184,6 +214,7 @@ function NewGame({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSta
           </div>
         </div>
 
+        {error && <p className="bad">{error}</p>}
         <div className="row">
           <button onClick={onBack}>← Späť</button>
           <div className="spacer" />
