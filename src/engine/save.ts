@@ -118,5 +118,9 @@ function migrate(state: GameState): GameState {
     state.rngState = rng.state;
     state.version = 6;
   }
+  if (state.version < 7) {
+    state.history ??= [];
+    state.version = 7;
+  }
   return state;
 }
