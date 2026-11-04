@@ -7,6 +7,7 @@ import { isMine } from '../../engine/advance';
 import { standings } from '../../engine/standings';
 import { formatDateShort } from '../dates';
 import { FixtureList } from './League';
+import { weatherFor, weatherLabel } from '../../engine/weather';
 
 export function Overview({ openClub, openReview }: { openClub: (id: string) => void; openReview: () => void }) {
   const { state } = useGame();
@@ -49,6 +50,11 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
           </button>
         </div>
       )}
+      {!state.management.sponsor && (
+        <div className="panel" style={{ marginTop: 16, borderColor: 'var(--accent)' }}>
+          <strong className="mid">Vyber si sponzora na sezónu</strong> – Financie → Sponzori.
+        </div>
+      )}
       {state.offers.some((o) => o.status === 'nova') && (
         <div className="panel" style={{ marginTop: 16, borderColor: 'var(--accent)' }}>
           <strong className="mid">Máš nové ponuky na hráčov</strong> – pozri sa do časti Prestupy.
@@ -71,6 +77,8 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
             <span className="muted">
               {formatDateShort(next.date)} {next.date.slice(0, 4)} · {next.round}. kolo
               {next.date === state.date ? ' · DNES' : ''}
+              {' · '}
+              {weatherLabel(weatherFor(next.id, next.date))}
             </span>
           </div>
         </div>

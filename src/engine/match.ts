@@ -2,6 +2,7 @@
 // Ten istý engine sa používa na zápas naživo (krok po minúte) aj na rýchlu simuláciu ostatných zápasov.
 
 import { ageOn } from './ratings';
+import { weatherLabel, weatherPlayerFactor, type Weather } from './weather';
 import type { Rng } from './rng';
 import { autoLineup, bestFormation, conditionFactor, formationSlots, isAvailable, positionFactor } from './tactics';
 import type { Player, Position, Style, Tactic } from './types';
@@ -83,6 +84,7 @@ export class MatchSim {
   private players: Record<string, Player>;
   private rng: Rng;
   private date: string;
+  weather: Weather | null;
   energy: Record<string, number> = {};
   private cards: Record<string, number> = {};
   private ratingAdj: Record<string, number> = {};
@@ -100,18 +102,26 @@ export class MatchSim {
     players: Record<string, Player>;
     rng: Rng;
     date: string;
+    /** Počasie (nepovinné) */
+    weather?: Weather;
     home: { clubId: string; tactic: Tactic; human?: boolean };
     away: { clubId: string; tactic: Tactic; human?: boolean };
   }) {
     this.players = opts.players;
     this.rng = opts.rng;
     this.date = opts.date;
+    this.weather = opts.weather ?? null;
     this.sides = [this.makeSide(opts.home), this.makeSide(opts.away)];
     this.sides.forEach((side, si) => {
       for (const x of side.onPitch) this.sideMap[x.id] = si as 0 | 1;
       for (const id of side.bench) this.sideMap[id] = si as 0 | 1;
     });
-    this.events.push({ minute: 0, type: 'start', side: 0, text: 'Rozhodca odpískal začiatok zápasu.' });
+    this.events.push({
+      minute: 0,
+      type: 'start',
+      side: 0,
+      text: `Rozhodca odpískal začiatok zápasu.${this.weather ? ` Počasie: ${weatherLabel(this.weather).replace(/^\S+ /, '').toLowerCase()}.` : ''}`,
+    });
   }
 
   private makeSide(s: { clubId: string; tactic: Tactic; human?: boolean }): SideState {
@@ -150,8 +160,10 @@ export class MatchSim {
   private perf(id: string, slot: Position): number {
     const p = this.players[id];
     const withEnergy = { ...p, energy: this.energy[id] ?? p.energy };
-    return conditionFactor(withEnergy) * positionFactor(p, slot);
+    const w = this.weather ? weatherPlayerFactor(this.weather, p.fyz, p.tech) : 1;
+    return conditionFactor(withEnergy) * positionFactor(p, slot) * w;
   }
+
 
   private strength(side: SideState) {
     let att = 0;

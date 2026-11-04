@@ -6,6 +6,7 @@ import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
+import { initialManagement } from './management';
 import type { GameState } from './types';
 
 export interface SaveMeta {
@@ -103,6 +104,12 @@ function migrate(state: GameState): GameState {
     state.ledger ??= [];
     state.seasonData.start ??= seasonStartSnapshot(state);
     state.version = 4;
+  }
+  if (state.version < 5) {
+    const rng = new Rng(state.rngState);
+    initialManagement(state, rng);
+    state.rngState = rng.state;
+    state.version = 5;
   }
   return state;
 }

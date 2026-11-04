@@ -3,6 +3,7 @@
 import { FOREIGN_CLUBS, type ForeignClub } from '../data/foreignClubs';
 import { addDays, transferWindow } from './calendar';
 import { addMoney } from './finance';
+import { transferBan } from './management';
 import { generatePlayer, pickNationality } from './generator';
 import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, marketValue, ovr, roundMoney } from './ratings';
 import type { Rng } from './rng';
@@ -47,6 +48,7 @@ export function respondToBid(state: GameState, p: Player, amount: number, rng: R
   const club = p.clubId ? state.clubs[p.clubId] : null;
   if (!club) return { kind: 'accept', fee: 0 };
   if (!transferWindow(state.date)) return { kind: 'reject', text: 'Mimo prestupového obdobia sa hráči kupovať nedajú (okrem voľných hráčov).' };
+  if (transferBan(state)) return { kind: 'reject', text: 'Klub má pre veľký dlh zákaz nákupov. Najprv daj do poriadku financie.' };
   const val = sellerValuation(state, p);
   if (amount >= val) return { kind: 'accept', fee: amount };
   if (amount >= val * 0.75) {
@@ -73,6 +75,9 @@ export function playerDemand(state: GameState, p: Player, renewal: boolean): Con
   const base = fairWage({ ...p, priceFactor: LEAGUE_PRICE_FACTOR[myLeague] ?? p.priceFactor }, state.date, state.season, myLeague);
   let f = 1.05;
   const fromRep = p.clubId ? state.clubs[p.clubId].reputation : 50;
+  if (!renewal && transferBan(state)) {
+    return { wage: 0, years: 0, refuses: 'Klub má pre veľký dlh zákaz podpisovania nových hráčov.' };
+  }
   if (!renewal) {
     f += Math.max(0, fromRep - myClub.reputation) / 20;
     // Výrazne lepší hráč nechce do slabšieho klubu

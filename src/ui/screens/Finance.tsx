@@ -4,6 +4,7 @@ import type { Transaction, TxType } from '../../engine/types';
 import { useGame } from '../GameContext';
 import { BarChart, HBars, LineChart, NEGATIVE, POSITIVE } from '../charts';
 import { formatDate, money } from '../common';
+import { BankPanel, FacilitiesPanel, SponsorPanel, TicketsPanel } from './Management';
 
 const MONTHS = ['', 'jan', 'feb', 'mar', 'apr', 'máj', 'jún', 'júl', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
@@ -51,7 +52,38 @@ export function balanceSeries(ledger: Transaction[], startBalance: number, start
   return points;
 }
 
+type FinTab = 'overview' | 'tickets' | 'sponsor' | 'bank' | 'stadium';
+
 export function FinanceScreen() {
+  const { state } = useGame();
+  const [tab, setTab] = useState<FinTab>('overview');
+  const tabs: Array<[FinTab, string]> = [
+    ['overview', 'Prehľad'],
+    ['tickets', 'Vstupné'],
+    ['sponsor', state.management.sponsor ? 'Sponzori' : 'Sponzori ❗'],
+    ['bank', 'Banka'],
+    ['stadium', 'Štadión a zariadenia'],
+  ];
+  return (
+    <>
+      <h1>Financie</h1>
+      <div className="tabs">
+        {tabs.map(([id, label]) => (
+          <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'overview' && <FinanceOverview />}
+      {tab === 'tickets' && <TicketsPanel />}
+      {tab === 'sponsor' && <SponsorPanel />}
+      {tab === 'bank' && <BankPanel />}
+      {tab === 'stadium' && <FacilitiesPanel />}
+    </>
+  );
+}
+
+function FinanceOverview() {
   const { state } = useGame();
   const [showAll, setShowAll] = useState(false);
   const me = state.manager.clubId;
@@ -70,7 +102,6 @@ export function FinanceScreen() {
 
   return (
     <>
-      <h1>Financie</h1>
       <div className="tiles">
         <Tile label="Na účte" value={money(club.balance)} note={start ? delta(club.balance - start.balance, 'od začiatku sezóny') : undefined} />
         <Tile label="Príjmy v sezóne" value={money(income)} />

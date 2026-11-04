@@ -6,7 +6,9 @@ import { ageOn } from './ratings';
 import { Rng } from './rng';
 import { createSplitIfReady } from './schedule';
 import { validTactic } from './tactics';
-import { matchdayIncome, monthlyFinance, seasonPrizes, squadValue } from './finance';
+import { weatherFor } from './weather';
+import { addMoney, matchdayIncome, monthlyFinance, seasonPrizes, squadValue } from './finance';
+import { finishProjects } from './management';
 import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
@@ -50,6 +52,7 @@ export function createSim(state: GameState, f: Fixture, rng: Rng, humanClub?: st
     players: state.players,
     rng,
     date: state.date,
+    weather: weatherFor(f.id, f.date),
     home: { clubId: f.homeId, tactic: tacticFor(state, f.homeId, f.awayId, rng), human: f.homeId === humanClub },
     away: { clubId: f.awayId, tactic: tacticFor(state, f.awayId, f.homeId, rng), human: f.awayId === humanClub },
   });
@@ -112,6 +115,9 @@ export function applyResult(state: GameState, fixtureId: string, r: MatchResult,
 
   if (isMine(state, f)) {
     const me = state.manager.clubId;
+    const sp = state.management?.sponsor;
+    const won = (f.homeId === me && f.homeGoals > f.awayGoals) || (f.awayId === me && f.awayGoals > f.homeGoals);
+    if (sp?.winBonus && won) addMoney(state, me, 'sponzor', sp.winBonus, `${sp.name} – bonus za výhru`);
     const home = state.clubs[f.homeId].shortName;
     const away = state.clubs[f.awayId].shortName;
     const myGoals = f.homeId === me ? f.homeGoals : f.awayGoals;
@@ -161,6 +167,7 @@ function endDay(state: GameState, rng: Rng): number {
   snapshotTables(state);
   if (seasonFinished(state)) seasonPrizes(state);
   expireOffers(state);
+  finishProjects(state);
   aiTransferDay(state, rng);
   const newOffers = generateOffersForMe(state, rng);
   for (const id of Object.keys(state.leagues)) {

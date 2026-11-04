@@ -2,6 +2,8 @@
 
 import { marketValue, ovr } from './ratings';
 import type { Rng } from './rng';
+import { weatherAttendance, weatherFor } from './weather';
+import { payLoans, priceDemand, ticketPriceOf, transferBan } from './management';
 import { standings } from './standings';
 import type { Fixture, GameState, SeasonStart, TxType } from './types';
 
@@ -14,13 +16,14 @@ export const TX_NAMES: Record<TxType, string> = {
   prestup_nakup: 'Nákupy hráčov',
   prestup_predaj: 'Predaje hráčov',
   priatelsky: 'Priateľské zápasy',
+  pozicka: 'Pôžičky',
+  splatka: 'Splátky pôžičiek',
+  stavba: 'Štadión a zariadenia',
   ine: 'Prevádzka klubu',
 };
 
 /** Televízne peniaze za mesiac podľa ligy */
 const TV_MONTHLY: Record<string, number> = { CZ1: 30_000, SK1: 18_000, CZ2: 8_000, SK2: 3_000 };
-/** Základná cena vstupenky podľa ligy */
-const TICKET_BASE: Record<string, number> = { CZ1: 9, SK1: 7, CZ2: 5, SK2: 4 };
 /** Odmena za 1. miesto (posledné miesto dostane 15 %) */
 const PRIZE_TOP: Record<string, number> = { CZ1: 1_000_000, SK1: 600_000, CZ2: 200_000, SK2: 80_000 };
 
@@ -64,11 +67,35 @@ export function monthlyFinance(state: GameState): void {
     const { pos, of } = tablePosition(state, club.id);
     // Sponzori platia viac pri úspechu
     const success = pos <= 3 ? 1.15 : pos > of - 3 ? 0.9 : 1;
-    const sponsor = 0.33 * (start ?? wages) * success + club.reputation * 250;
+    let sponsor = 0.33 * (start ?? wages) * success + club.reputation * 250;
+    let sponsorName = 'Sponzori';
+    if (club.id === state.manager.clubId && state.management) {
+      // Ak si hráč nevybral sponzora, vyberie sa zmluva s istou sumou
+      if (!state.management.sponsor && state.management.sponsorOffers.length) {
+        state.management.sponsor = state.management.sponsorOffers[0];
+        state.news.push({ date: state.date, text: `Vedenie podpísalo sponzorskú zmluvu so spoločnosťou ${state.management.sponsor.name}.` });
+      }
+      if (state.management.sponsor) {
+        sponsor = state.management.sponsor.monthly;
+        sponsorName = state.management.sponsor.name;
+      }
+    }
     addMoney(state, club.id, 'mzdy', -wages, `Platy za ${monthName}`);
     addMoney(state, club.id, 'tv', TV_MONTHLY[club.leagueId] ?? 0, `Televízne práva – ${monthName}`);
-    addMoney(state, club.id, 'sponzor', sponsor, `Sponzori – ${monthName}`);
+    addMoney(state, club.id, 'sponzor', sponsor, `${sponsorName} – ${monthName}`);
     addMoney(state, club.id, 'ine', -(wages * 0.15 + club.capacity * 2.5), `Prevádzka štadióna a klubu – ${monthName}`);
+  }
+  if (state.management) {
+    payLoans(state);
+    const bal = state.clubs[state.manager.clubId].balance;
+    if (bal < 0) {
+      state.news.push({
+        date: state.date,
+        text: transferBan(state)
+          ? `Klub je hlboko v mínuse (${Math.round(bal).toLocaleString('sk-SK')} €) – zväz zakázal nákupy hráčov.`
+          : `Pozor: klub je v mínuse (${Math.round(bal).toLocaleString('sk-SK')} €).`,
+      });
+    }
   }
 }
 
@@ -80,9 +107,11 @@ export function matchdayIncome(state: GameState, f: Fixture, rng: Rng): void {
   const { pos, of } = tablePosition(state, home.id);
   const tableBonus = ((of - pos) / Math.max(1, of - 1) - 0.5) * 0.2;
   const derby = home.city === away.city ? 0.15 : 0;
-  const fill = Math.max(0.1, Math.min(0.98, 0.25 + home.reputation / 200 + tableBonus + (away.reputation - 55) / 250 + derby + rng.normal(0, 0.05)));
+  const weather = weatherAttendance(weatherFor(f.id, f.date));
+  const interest = 0.25 + home.reputation / 200 + tableBonus + (away.reputation - 55) / 250 + derby + weather + rng.normal(0, 0.05);
+  const fill = Math.max(0.05, Math.min(0.98, interest * priceDemand(state, home.id)));
   const attendance = Math.round(home.capacity * fill);
-  const price = (TICKET_BASE[home.leagueId] ?? 5) * (0.6 + home.reputation / 120);
+  const price = ticketPriceOf(state, home.id);
   f.attendance = attendance;
   addMoney(state, home.id, 'vstupne', attendance * price, `Vstupné: ${home.shortName} – ${away.shortName} (${attendance.toLocaleString('sk-SK')} divákov)`);
 }
@@ -96,6 +125,10 @@ export function seasonPrizes(state: GameState): void {
     t.forEach((r, i) => {
       const share = 1 - (i / Math.max(1, t.length - 1)) * 0.85;
       addMoney(state, r.clubId, 'odmena', top * share, `Odmena za ${i + 1}. miesto – ${league.name}`);
+      const sp = state.management?.sponsor;
+      if (r.clubId === state.manager.clubId && sp?.targetPos && i + 1 <= sp.targetPos) {
+        addMoney(state, r.clubId, 'sponzor', sp.targetBonus, `${sp.name} – bonus za ${i + 1}. miesto`);
+      }
     });
   }
   state.seasonData.prizesPaid = true;

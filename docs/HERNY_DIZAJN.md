@@ -109,12 +109,17 @@ Vypočíta sa z atribútov s váhami podľa pozície (útočník: najviac Útoč
 
 ---
 
-## 6. Tréning
+## 6. Tréning a zariadenia
 
-- Intenzita pre celý tím: nízka / stredná / vysoká (rýchlejší rast, ale väčšia únava a riziko zranení).
-- Zameranie: fyzické / technické / obranné / útočné.
+- Ručné nastavovanie tréningu **nie je** (rozhodnuté – hra sa sústreďuje na prestupy).
+- **Tréningové centrum** (úroveň 1–5): dá sa vylepšiť za peniaze (60 dní), vyššia úroveň = rýchlejší rast hráčov (účinok vo fáze 5).
+- **Mládežnícka akadémia** (úroveň 1–5): vyššia úroveň = kvalitnejší mládežníci (účinok vo fáze 5).
 
----
+## 6b. Počasie
+
+- Každý zápas má počasie podľa ročného obdobia (stredná Európa) a náhody: slnečno, polojasno, zamračené, dážď, lejak, sneženie, hmla a teplota.
+- **Výkon:** veľmi jemný vplyv (max. ~2 %) – v zlom počasí (dážď, sneh, horúčava, mráz) sa o trochu lepšie darí fyzicky silným hráčom ako technickým.
+- **Návštevnosť:** pekné počasie +3 až 5 %, zlé počasie až −7 %.
 
 ## 7. Mládež
 
@@ -131,9 +136,8 @@ Vypočíta sa z atribútov s váhami podľa pozície (útočník: najviac Útoč
 - **Cena vstupenky** sa dá nastaviť (vyššia cena = menej divákov).
 - **Štadión** sa dá rozšíriť, výstavba trvá niekoľko mesiacov.
 - **Sponzori:** na začiatku sezóny výber z ponúk (istá suma alebo nižšia suma + bonusy).
-- **Pôžičky:** klub si môže požičať od banky.
-  - Výška pôžičky je obmedzená podľa veľkosti klubu (príjmy, štadión).
-  - Úrok a mesačné splátky na zvolený počet rokov.
+- **Pôžičky:** klub si môže požičať od banky – **štedro aj malé kluby** (limit aspoň 1,5 mil. €, pri väčších kluboch viac).
+  - Úrok 4 % (1 rok), 5,5 % (2–3 roky), 6,5 % (4–5 rokov), mesačné splátky.
   - Predčasné splatenie je možné.
 - **Dlh:** pri zápornom zostatku najprv varovanie, potom zákaz prestupov, nakoniec hrozí vyhodenie.
 
@@ -257,7 +261,7 @@ Na konci sezóny slávnostná obrazovka s kartami:
 1. ✅ Základ projektu, hráči, kluby, dáta, ukladanie
 2. ✅ Simulácia zápasu, liga, tabuľka, plynutie času
 3. ✅ Prestupový trh a zmluvy (+ základné financie a vyhodnotenie sezóny)
-4. Financie (vstupné, sponzori, pôžičky, štadión)
-5. Vývoj hráčov, tréning, mládež, prechod sezóny
+4. ✅ Financie (vstupné, sponzori, pôžičky, štadión, zariadenia) + počasie
+5. Vývoj hráčov, zariadenia, mládež, prechod sezóny
 6. Domáci pohár a európske poháre
 7. Vedenie klubu, štatistiky, história

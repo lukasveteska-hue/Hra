@@ -8,6 +8,7 @@ import { Rng } from '../engine/rng';
 import { FORMATIONS, STYLE_NAMES } from '../engine/tactics';
 import type { Fixture, Style } from '../engine/types';
 import { useGame } from './GameContext';
+import { weatherFor, weatherLabel } from '../engine/weather';
 import { ClubBadge, Modal, Pos } from './common';
 import { AttackSlider, TacticsEditor } from './TacticsEditor';
 
@@ -74,6 +75,9 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
     return (
       <>
         <Scoreboard home={home} away={away} hg={null} ag={null} minute={null} />
+        <p className="muted" style={{ marginTop: -4, textAlign: 'center' }}>
+          {weatherLabel(weatherFor(fixture.id, fixture.date))} · {home.stadium}
+        </p>
         <div className="row" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Zostava a taktika</h2>
           <div className="spacer" />
@@ -99,6 +103,9 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
   return (
     <>
       <Scoreboard home={home} away={away} hg={hs.goals} ag={as.goals} minute={minute} />
+      <p className="muted" style={{ marginTop: -4, textAlign: 'center', fontSize: 12 }}>
+        {weatherLabel(weatherFor(fixture.id, fixture.date))}
+      </p>
       <ul className="commentary mobile-only panel" style={{ padding: '4px 12px' }}>
         {events.slice(0, 3).map((e, i) => (
           <li key={i} className={e.type}>

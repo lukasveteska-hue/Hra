@@ -147,6 +147,8 @@ export interface GameState {
   transfers: TransferRecord[];
   /** Účtovníctvo môjho klubu */
   ledger: Transaction[];
+  /** Správa môjho klubu: vstupné, sponzori, pôžičky, stavby */
+  management: Management;
   /** Stav generátora náhodných čísel */
   rngState: number;
   nextId: number;
@@ -231,6 +233,9 @@ export type TxType =
   | 'prestup_nakup'
   | 'prestup_predaj'
   | 'priatelsky'
+  | 'pozicka'
+  | 'splatka'
+  | 'stavba'
   | 'ine';
 
 export interface Transaction {
@@ -287,4 +292,52 @@ export interface PosSnapshot {
   /** Poradie klubov (id) v tabuľke */
   order: string[];
   points: Record<string, number>;
+}
+
+// ---------- Fáza 4: správa klubu ----------
+
+export interface SponsorDeal {
+  name: string;
+  /** Popis typu zmluvy */
+  kind: 'istota' | 'vykon' | 'ambicia';
+  monthly: number;
+  /** Bonus za každú výhru v lige */
+  winBonus: number;
+  /** Bonus, ak klub skončí na tomto mieste alebo lepšie */
+  targetPos: number;
+  targetBonus: number;
+}
+
+export interface Loan {
+  id: string;
+  principal: number;
+  remaining: number;
+  /** Ročný úrok, napr. 0.05 */
+  rate: number;
+  monthlyPayment: number;
+  months: number;
+  monthsLeft: number;
+  startDate: string;
+}
+
+export interface Project {
+  kind: 'stadion' | 'trening' | 'akademia';
+  seats?: number;
+  level?: number;
+  cost: number;
+  startDate: string;
+  finishDate: string;
+}
+
+export interface Management {
+  /** Cena vstupenky; null = automatická */
+  ticketPrice: number | null;
+  sponsor: SponsorDeal | null;
+  sponsorOffers: SponsorDeal[];
+  loans: Loan[];
+  projects: Project[];
+  /** Úroveň tréningového centra 1–5 */
+  training: number;
+  /** Úroveň mládežníckej akadémie 1–5 */
+  youth: number;
 }

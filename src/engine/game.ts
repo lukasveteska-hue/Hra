@@ -8,9 +8,10 @@ import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
 import { generateFreeAgents } from './transfers';
+import { initialManagement } from './management';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {
@@ -131,7 +132,9 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
     offers: [],
     transfers: [],
     ledger: [],
+    management: null as unknown as GameState['management'],
   };
+  initialManagement(state, rng);
   generateFreeAgents(state, rng, 40);
   state.seasonData.start = seasonStartSnapshot(state);
   state.seasonData.valueHistory = [{ date, value: state.seasonData.start.squadValue }];
