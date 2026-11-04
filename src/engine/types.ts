@@ -35,6 +35,8 @@ export interface Player {
   devType: DevType;
   /** Povaha hráča */
   personality: Personality;
+  /** Skryté: skutočný strop hráča (pri „neúspešnom“ talente nižší ako potenciál) */
+  ceiling?: number;
 
   /** Energia 0–100 */
   energy: number;
@@ -154,6 +156,8 @@ export interface GameState {
   ledger: Transaction[];
   /** Správa môjho klubu: vstupné, sponzori, pôžičky, stavby */
   management: Management;
+  /** História mojich sezón */
+  history: SeasonHistory[];
   /** Stav generátora náhodných čísel */
   rngState: number;
   nextId: number;
@@ -225,6 +229,51 @@ export interface SeasonData {
   valueHistory?: Array<{ date: string; value: number }>;
   /** Za ktoré kluby (a hráčov) už prišli odmeny za sezónu */
   prizesPaid?: boolean;
+  /** Cieľ vedenia: umiestnenie do tohto miesta */
+  boardTarget?: number;
+  /** Baráž: či už bola vytvorená a vyhodnotená */
+  playoffsCreated?: boolean;
+  playoffsResolved?: boolean;
+  /** Výsledky baráže a postupy/zostupy pripravené na novú sezónu */
+  moves?: LeagueMove[];
+}
+
+export interface LeagueMove {
+  clubId: string;
+  from: string;
+  to: string;
+  reason: 'postup' | 'zostup' | 'baraz-postup' | 'baraz-zostup';
+}
+
+export type BoardRating = 'vyborna' | 'uspesna' | 'prijatelna' | 'neuspesna' | 'katastrofalna';
+
+export interface SeasonHistory {
+  season: number;
+  clubId: string;
+  leagueId: string;
+  position: number;
+  points: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  rating: BoardRating;
+  target: number;
+  /** Majstri jednotlivých líg */
+  champions: Record<string, string>;
+  /** Najlepší strelec môjho klubu */
+  topScorer?: { name: string; goals: number };
+  /** Najlepší strelec ligy */
+  leagueTopScorer?: { name: string; club: string; goals: number };
+  balanceEnd: number;
+  income: number;
+  expense: number;
+  squadValueEnd: number;
+  moves: LeagueMove[];
+  /** Najdrahší predaj a nákup môjho klubu */
+  bestSale?: { name: string; fee: number };
+  bestBuy?: { name: string; fee: number };
 }
 
 // ---------- Fáza 3: prestupy, financie, história ----------

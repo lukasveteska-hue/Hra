@@ -9,6 +9,7 @@ import { validTactic } from './tactics';
 import { weatherFor } from './weather';
 import { addMoney, matchdayIncome, monthlyFinance, seasonPrizes, squadValue } from './finance';
 import { finishProjects } from './management';
+import { monthlyDevelopment } from './development';
 import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
@@ -183,6 +184,8 @@ function endDay(state: GameState, rng: Rng): number {
   if (!before && after) state.news.push({ date: state.date, text: `Začalo sa ${after === 'leto' ? 'letné' : 'zimné'} prestupové obdobie.` });
   const day = state.date.slice(8);
   if (day === '01') monthlyFinance(state);
+  const month = Number(state.date.slice(5, 7));
+  if (day === '01' && month !== 6 && month !== 7) monthlyDevelopment(state, rng);
   if (day === '01' || day === '15') {
     (state.seasonData.valueHistory ??= []).push({ date: state.date, value: squadValue(state, state.manager.clubId) });
   }
