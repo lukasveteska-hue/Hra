@@ -12,11 +12,12 @@ import { LeagueScreen } from './screens/League';
 import { Overview } from './screens/Overview';
 import { FinanceScreen } from './screens/Finance';
 import { SeasonReview } from './screens/SeasonReview';
+import { NewSeasonScreen } from './screens/NewSeason';
 import { TransfersScreen } from './screens/Transfers';
 import { SaveScreen } from './screens/Save';
 import { SquadScreen } from './screens/Squad';
 
-export type Screen = 'overview' | 'squad' | 'transfers' | 'league' | 'finance' | 'save' | 'review';
+export type Screen = 'overview' | 'squad' | 'transfers' | 'league' | 'finance' | 'save' | 'review' | 'newseason';
 
 const NAV: Array<{ id: Screen; label: string; icon: string }> = [
   { id: 'overview', label: 'Prehľad', icon: '🏠' },
@@ -75,7 +76,8 @@ export function GameShell() {
         {screen === 'league' && <LeagueScreen openClub={openClub} />}
         {screen === 'finance' && <FinanceScreen />}
         {screen === 'save' && <SaveScreen />}
-        {screen === 'review' && <SeasonReview openClub={openClub} />}
+        {screen === 'review' && <SeasonReview openClub={openClub} onContinue={() => go('newseason')} />}
+        {screen === 'newseason' && <NewSeasonScreen onDone={() => go('overview')} />}
       </>
     );
   }

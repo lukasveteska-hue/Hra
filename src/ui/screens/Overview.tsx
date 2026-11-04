@@ -3,7 +3,7 @@ import { marketValue, ovr } from '../../engine/ratings';
 import { countryName } from '../../data/countries';
 import { useGame } from '../GameContext';
 import { formatDate, money, Flag, ClubBadge } from '../common';
-import { isMine } from '../../engine/advance';
+import { isMine, seasonFinished } from '../../engine/advance';
 import { standings } from '../../engine/standings';
 import { formatDateShort } from '../dates';
 import { FixtureList } from './League';
@@ -22,6 +22,8 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
   const next = myFixtures.find((f) => !f.played);
   const recent = myFixtures.filter((f) => f.played).slice(-3);
   const upcoming = myFixtures.filter((f) => !f.played).slice(0, 5);
+  // Od januára upozorniť na končiace zmluvy
+  const expiring = state.date >= `${state.season + 1}-01-01` ? squad.filter((p) => p.contractUntil <= state.season + 1) : [];
 
   return (
     <>
@@ -41,13 +43,22 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
         </div>
       </div>
 
-      {!next && state.seasonData.fixtures.every((f) => f.played) && (
+      {!next && seasonFinished(state) && (
         <div className="hero" style={{ marginTop: 16 }}>
           <div className="trophy">🏆</div>
           <div className="big">Sezóna sa skončila</div>
           <button className="primary" onClick={openReview} style={{ marginTop: 10 }}>
             Zobraziť vyhodnotenie sezóny
           </button>
+        </div>
+      )}
+      {expiring.length > 0 && (
+        <div className="panel" style={{ marginTop: 16, borderColor: 'var(--bad)' }}>
+          <strong className="bad">Končiace zmluvy (30. 6. {state.season + 1})</strong>
+          <div className="muted" style={{ margin: '4px 0 8px' }}>
+            Títo hráči po sezóne odídu zadarmo, ak im nepredĺžiš zmluvu (Káder → hráč → Predĺžiť zmluvu):
+          </div>
+          <div>{expiring.map((p) => `${p.lastName} (${Math.round(ovr(p))})`).join(', ')}</div>
         </div>
       )}
       {!state.management.sponsor && (
@@ -116,6 +127,15 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
             <dt>Miesto v tabuľke</dt>
             <dd>
               {leagueRank}. z {league?.clubIds.length}
+            </dd>
+            <dt>Cieľ vedenia</dt>
+            <dd>
+              {state.seasonData.boardTarget ?? '–'}. miesto
+              {leagueRank && state.seasonData.boardTarget ? (
+                <span className={leagueRank <= state.seasonData.boardTarget ? 'good' : 'bad'}>
+                  {leagueRank <= state.seasonData.boardTarget ? ' · plníte' : ' · zatiaľ neplníte'}
+                </span>
+              ) : null}
             </dd>
             <dt>Hráčov v kádri</dt>
             <dd>{squad.length}</dd>

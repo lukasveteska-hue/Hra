@@ -8,6 +8,10 @@ import { clubSeason, leagueFacts, leaguePlayers, teamOfSeason, type ClubRecord }
 import { standings } from '../../engine/standings';
 import type { Fixture, TxType } from '../../engine/types';
 import { useGame } from '../GameContext';
+import { boardRating, RATING_ICON, RATING_NAMES } from '../../engine/newSeason';
+import { seasonFinished } from '../../engine/advance';
+import { isPlayoffLeague, playoffName } from '../../engine/playoffs';
+import { FixtureList } from './League';
 import { BarChart, HBars, LineChart, NEGATIVE, POSITIVE, SERIES } from '../charts';
 import { Attr, ClubBadge, Flag, money, Pos } from '../common';
 import { balanceSeries, byType, delta, formatShort, monthlyNet, shortMoney, Tile } from './Finance';
@@ -24,7 +28,7 @@ const TABS: Array<[Tab, string]> = [
   ['transfers', 'Prestupy'],
 ];
 
-export function SeasonReview({ openClub }: { openClub: (id: string) => void }) {
+export function SeasonReview({ openClub, onContinue }: { openClub: (id: string) => void; onContinue?: () => void }) {
   const { state } = useGame();
   const [tab, setTab] = useState<Tab>('overview');
   const me = state.manager.clubId;
@@ -35,6 +39,9 @@ export function SeasonReview({ openClub }: { openClub: (id: string) => void }) {
   const pos = table.findIndex((r) => r.clubId === me) + 1;
   const row = table[pos - 1];
   const n = table.length;
+  const board = boardRating(state);
+  const finished = seasonFinished(state);
+  const myMove = state.seasonData.moves?.find((m) => m.clubId === me);
 
   const trophy = pos === 1 ? '🏆' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos > n - 2 ? '😞' : '⚽';
   const headline =
@@ -43,7 +50,9 @@ export function SeasonReview({ openClub }: { openClub: (id: string) => void }) {
         ? `${club.shortName} je majster ligy!`
         : `${club.shortName} vyhral ${league.name}!`
       : `${pos}. miesto v lige ${league.name}`;
-  const zone = league.tier === 2 ? (pos <= 2 ? 'Postupové miesto' : null) : pos === n ? 'Zostupové miesto' : pos >= n - 2 ? 'Miesto v ohrození zostupu (baráž)' : null;
+  const zone = myMove
+    ? { postup: 'Postup do vyššej ligy!', 'baraz-postup': 'Postup cez baráž!', zostup: 'Zostup do nižšej ligy', 'baraz-zostup': 'Zostup po baráži' }[myMove.reason]
+    : null;
 
   return (
     <>
@@ -55,6 +64,14 @@ export function SeasonReview({ openClub }: { openClub: (id: string) => void }) {
           {row.points} bodov · {row.won}V {row.drawn}R {row.lost}P · skóre {row.gf}:{row.ga}
           {zone && ` · ${zone}`}
         </div>
+        <div className="sub" style={{ marginTop: 6 }}>
+          Hodnotenie vedenia: {RATING_ICON[board.rating]} <strong>{RATING_NAMES[board.rating]}</strong> (cieľ {board.target}. miesto)
+        </div>
+        {onContinue && finished && (
+          <button className="primary" style={{ marginTop: 14 }} onClick={onContinue}>
+            Pokračovať do novej sezóny ▶
+          </button>
+        )}
       </div>
       <div className="tabs">
         {TABS.map(([id, label]) => (
@@ -217,8 +234,18 @@ function MyClub() {
 
 function Tables({ openClub }: { openClub: (id: string) => void }) {
   const { state } = useGame();
+  const po = state.seasonData.fixtures.filter((f) => isPlayoffLeague(f.leagueId));
   return (
     <>
+      {['PO-CZ', 'PO-SK'].map((id) => {
+        const list = po.filter((f) => f.leagueId === id);
+        return list.length ? (
+          <div key={id} className="panel">
+            <h3>{playoffName(id)}</h3>
+            <FixtureList fixtures={list} showDate />
+          </div>
+        ) : null;
+      })}
       {Object.values(state.leagues).map((l) => {
         const champ = standings(state, l.id)[0];
         return (
@@ -510,11 +537,11 @@ function Finance() {
 function Transfers() {
   const { state } = useGame();
   const me = state.manager.clubId;
-  const season = state.transfers;
+  const season = state.transfers.filter((t) => t.date >= `${state.season}-06-01`);
   const ins = season.filter((t) => t.toClubId === me);
   const outs = season.filter((t) => t.fromClubId === me);
   const top = [...season].sort((a, b) => b.fee - a.fee).slice(0, 15);
-  const abroad = season.filter((t) => t.toName);
+  const abroad = season.filter((t) => t.toName && !t.toName.startsWith('voľný'));
   const name = (id: string | null, alt?: string) => (id ? state.clubs[id]?.shortName : alt ?? '–');
   const sum = (list: typeof season) => list.reduce((a, t) => a + t.fee, 0);
 

@@ -3,15 +3,22 @@ import { formatDateShort } from '../dates';
 import { standings, type TableRow } from '../../engine/standings';
 import type { Fixture } from '../../engine/types';
 import { useGame } from '../GameContext';
+import { playoffName } from '../../engine/playoffs';
+import { RATING_ICON, RATING_NAMES } from '../../engine/newSeason';
+import { seasonLabel } from '../../engine/game';
+import { LineChart, SERIES } from '../charts';
+import { money } from '../common';
 import { ClubBadge, Flag } from '../common';
 
-type Tab = 'table' | 'rounds' | 'scorers';
+type Tab = 'table' | 'rounds' | 'scorers' | 'playoff' | 'history';
 
 export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
   const { state } = useGame();
   const myLeague = state.clubs[state.manager.clubId].leagueId ?? 'CZ1';
   const [leagueId, setLeagueId] = useState(myLeague);
   const [tab, setTab] = useState<Tab>('table');
+  const poId = `PO-${state.leagues[leagueId].country}`;
+  const playoff = state.seasonData.fixtures.filter((f) => f.leagueId === poId);
 
   return (
     <>
@@ -33,10 +40,27 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
         <button className={tab === 'scorers' ? 'active' : ''} onClick={() => setTab('scorers')}>
           Strelci
         </button>
+        {playoff.length > 0 && (
+          <button className={tab === 'playoff' ? 'active' : ''} onClick={() => setTab('playoff')}>
+            Baráž
+          </button>
+        )}
+        <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>
+          História
+        </button>
       </div>
       {tab === 'table' && <LeagueTable leagueId={leagueId} openClub={openClub} />}
       {tab === 'rounds' && <Rounds leagueId={leagueId} />}
       {tab === 'scorers' && <Scorers leagueId={leagueId} />}
+      {tab === 'playoff' && (
+        <>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {playoffName(poId)} – dva zápasy, rozhoduje celkové skóre, pri rovnosti penalty.
+          </p>
+          <FixtureList fixtures={playoff} showDate />
+        </>
+      )}
+      {tab === 'history' && <HistoryView />}
     </>
   );
 }
@@ -243,5 +267,129 @@ function Scorers({ leagueId }: { leagueId: string }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function HistoryView() {
+  const { state } = useGame();
+  const h = state.history;
+  if (!h.length) return <p className="muted">História sa začne zapisovať po prvej odohratej sezóne.</p>;
+  const leagueIds = Object.keys(state.leagues);
+  return (
+    <>
+      <div className="panel">
+        <h3>Moje sezóny</h3>
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Sezóna</th>
+                <th className="sticky">Klub</th>
+                <th>Liga</th>
+                <th className="num">Miesto</th>
+                <th className="num">Cieľ</th>
+                <th className="num">Body</th>
+                <th className="num">V-R-P</th>
+                <th className="num">Skóre</th>
+                <th>Hodnotenie</th>
+                <th>Najlepší strelec</th>
+                <th className="num">Účet na konci</th>
+                <th className="num">Hodnota kádra</th>
+                <th>Najdrahší predaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              {h.map((x) => {
+                const c = state.clubs[x.clubId];
+                const move = x.moves.find((m) => m.clubId === x.clubId);
+                return (
+                  <tr key={x.season}>
+                    <td>{seasonLabel(x.season)}</td>
+                    <td className="sticky">
+                      <span className="club-cell">
+                        <ClubBadge club={c} size={16} />
+                        {c.shortName}
+                      </span>
+                    </td>
+                    <td>{state.leagues[x.leagueId]?.name}</td>
+                    <td className="num">
+                      <strong>{x.position}.</strong>
+                      {move ? (move.to.endsWith('1') ? ' ⬆' : ' ⬇') : ''}
+                      {x.position === 1 ? ' 🏆' : ''}
+                    </td>
+                    <td className="num">{x.target}.</td>
+                    <td className="num">{x.points}</td>
+                    <td className="num">
+                      {x.won}-{x.drawn}-{x.lost}
+                    </td>
+                    <td className="num">
+                      {x.gf}:{x.ga}
+                    </td>
+                    <td>
+                      {RATING_ICON[x.rating]} {RATING_NAMES[x.rating]}
+                    </td>
+                    <td>{x.topScorer ? `${x.topScorer.name} (${x.topScorer.goals})` : '–'}</td>
+                    <td className="num">{money(x.balanceEnd)}</td>
+                    <td className="num">{money(x.squadValueEnd)}</td>
+                    <td>{x.bestSale ? `${x.bestSale.name} (${money(x.bestSale.fee)})` : '–'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {h.length >= 2 && (
+        <div className="panel">
+          <h3>Umiestnenie po sezónach</h3>
+          <LineChart
+            series={[{ name: 'Umiestnenie', color: SERIES[0], values: h.map((x) => x.position) }]}
+            xLabels={h.map((x) => seasonLabel(x.season))}
+            invert
+            yMin={1}
+            yMax={16}
+            integerTicks
+            format={(v) => `${v}.`}
+          />
+        </div>
+      )}
+      <div className="panel">
+        <h3>Majstri</h3>
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Sezóna</th>
+                {leagueIds.map((id) => (
+                  <th key={id}>{state.leagues[id].name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {h.map((x) => (
+                <tr key={x.season}>
+                  <td>{seasonLabel(x.season)}</td>
+                  {leagueIds.map((id) => {
+                    const c = x.champions[id] ? state.clubs[x.champions[id]] : null;
+                    return (
+                      <td key={id}>
+                        {c ? (
+                          <span className="club-cell">
+                            <ClubBadge club={c} size={16} />
+                            {c.shortName}
+                          </span>
+                        ) : (
+                          '–'
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }

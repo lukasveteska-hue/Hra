@@ -86,6 +86,15 @@ Vypočíta sa z atribútov s váhami podľa pozície (útočník: najviac Útoč
 
 ---
 
+## 3b. Vývoj hráčov a prechod sezóny
+
+- **Rast** každý mesiac počas sezóny (august – máj): podľa veku, skutočného stropu (pri „neúspešnom talente“ nižší ako potenciál), typu vývoja (skorý / neskorý), hracieho času a úrovne tréningového centra. Rast je nerovnomerný.
+- **Starnutie:** od 30 rokov pokles (najmä fyzička), od 35 rýchlejší; brankári starnú pomalšie.
+- **Koniec kariéry** na konci sezóny, najmä 33–40 rokov.
+- **Mládež:** každé leto 2–4 mládežníci v každom klube, kvalita a potenciál podľa akadémie, občas supertalent.
+- **Baráž:** CZ – 16. zostupuje, 14. a 15. hrajú s 3. a 2. tímom 2. ligy (2 zápasy, pri rovnosti penalty), víťaz 2. ligy postupuje. SK – 12. zostupuje, 11. hrá s 2. tímom 2. ligy. B-tímy nepostupujú. Z 2. líg sa zatiaľ nezostupuje (3. ligy nie sú).
+- **Prechod sezóny:** hodnotenie vedenia, postupy/zostupy, zmena sily klubov, konce kariér, konce zmlúv (počítačové kluby väčšinou predĺžia, moji hráči bez novej zmluvy odídu), mládež, doplnenie kádrov, noví sponzori, ponuky z iných klubov, zápis do histórie.
+
 ## 4. Začiatok hry a kariéra
 
 - Výber ľubovoľného klubu z 1. alebo 2. ligy CZ alebo SK.
@@ -272,6 +281,6 @@ Na konci sezóny slávnostná obrazovka s kartami:
 2. ✅ Simulácia zápasu, liga, tabuľka, plynutie času
 3. ✅ Prestupový trh a zmluvy (+ základné financie a vyhodnotenie sezóny)
 4. ✅ Financie (vstupné, sponzori, pôžičky, štadión, zariadenia) + počasie
-5. Vývoj hráčov, zariadenia, mládež, prechod sezóny
+5. ✅ Vývoj hráčov, zariadenia, mládež, prechod sezóny, baráž, hodnotenie vedenia, história
 6. Domáci pohár a európske poháre
 7. Vedenie klubu, štatistiky, história
