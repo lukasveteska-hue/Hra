@@ -90,7 +90,7 @@ export const STAFF_ROLES: Record<StaffRole, string> = {
 };
 
 /** Kluby, pre ktoré sa nepodarilo nájsť logo */
-const MISSING_LOGOS = new Set(['hradec', 'kromeriz', 'vlasim', 'bytca', 'povbystrica', 'malzenice']);
+const MISSING_LOGOS = new Set<string>();
 
 // ---------- Predvolená databáza ----------
 

@@ -77,4 +77,4 @@ počet klubov v lige…). Ak nájde chybu, databázu nenahrá a vypíše, čo tr
 
 ## Logá
 Logá sú v priečinku `public/logos/` (názov súboru = id klubu). Stiahnuté boli z Wikipédie
-skriptom `scripts/stiahni-loga.mjs`. Ak logo chýba, hra zobrazí štít vo farbách klubu.
+skriptom `scripts/stiahni-loga.mjs` a z TheSportsDB. Ak logo chýba, hra zobrazí štít vo farbách klubu.
