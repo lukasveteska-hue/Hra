@@ -11,7 +11,7 @@ import { generateFreeAgents } from './transfers';
 import { initialManagement } from './management';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {
@@ -135,7 +135,7 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
     management: null as unknown as GameState['management'],
   };
   initialManagement(state, rng);
-  generateFreeAgents(state, rng, 40);
+  generateFreeAgents(state, rng, 55);
   state.seasonData.start = seasonStartSnapshot(state);
   state.seasonData.valueHistory = [{ date, value: state.seasonData.start.squadValue }];
   state.rngState = rng.state;

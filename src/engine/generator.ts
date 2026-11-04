@@ -3,7 +3,7 @@
 import { FOREIGN_MIX, NAMES } from '../data/names';
 import { ovr } from './ratings';
 import type { Rng } from './rng';
-import type { DevType, Player, Position } from './types';
+import type { DevType, Personality, Player, Position } from './types';
 
 const clamp = (v: number, min = 1, max = 99) => Math.max(min, Math.min(max, v));
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -51,6 +51,14 @@ function randomDevType(rng: Rng): DevType {
   if (x < 0.75) return 'early';
   if (x < 0.9) return 'late';
   return 'bust';
+}
+
+export function randomPersonality(rng: Rng): Personality {
+  const x = rng.next();
+  if (x < 0.25) return 'ambiciozny';
+  if (x < 0.45) return 'zoldnier';
+  if (x < 0.6) return 'lojalny';
+  return 'pohodar';
 }
 
 function birthDateFor(rng: Rng, age: number, season: number): string {
@@ -127,6 +135,7 @@ export function generatePlayer(rng: Rng, o: GenOptions): Player {
     ...attrs,
     potential: potentialFor(rng, o.age, current),
     devType: randomDevType(rng),
+    personality: randomPersonality(rng),
     energy: 100,
     form: clamp(Math.round(rng.normal(10, 3)), 0, 20),
     morale: 70,
@@ -154,6 +163,7 @@ const SQUAD_TEMPLATE: Position[] = [
 function randomAge(rng: Rng, young: boolean): number {
   if (young) return rng.int(17, 23);
   // Väčšina hráčov 20–31
+  if (rng.chance(0.04)) return rng.int(34, 38);
   return Math.round(clamp(rng.normal(25.5, 4.2), 17, 36));
 }
 

@@ -7,6 +7,7 @@ import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
 import { initialManagement } from './management';
+import { randomPersonality } from './generator';
 import type { GameState } from './types';
 
 export interface SaveMeta {
@@ -110,6 +111,12 @@ function migrate(state: GameState): GameState {
     initialManagement(state, rng);
     state.rngState = rng.state;
     state.version = 5;
+  }
+  if (state.version < 6) {
+    const rng = new Rng(state.rngState);
+    for (const p of Object.values(state.players)) p.personality ??= randomPersonality(rng);
+    state.rngState = rng.state;
+    state.version = 6;
   }
   return state;
 }

@@ -6,6 +6,9 @@ export type Position = 'B' | 'O' | 'Z' | 'U';
 /** Skrytý typ vývoja hráča – náhoda, či a kedy dosiahne potenciál */
 export type DevType = 'normal' | 'early' | 'late' | 'bust';
 
+/** Povaha hráča – ovplyvňuje, kam a za koľko je ochotný prestúpiť */
+export type Personality = 'ambiciozny' | 'zoldnier' | 'lojalny' | 'pohodar';
+
 export interface Player {
   id: string;
   firstName: string;
@@ -30,6 +33,8 @@ export interface Player {
   potential: number;
   /** Skryté: typ vývoja */
   devType: DevType;
+  /** Povaha hráča */
+  personality: Personality;
 
   /** Energia 0–100 */
   energy: number;

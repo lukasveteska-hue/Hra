@@ -163,10 +163,19 @@ function ContractForm({ player, fee, renewal, onDone }: { player: Player; fee: n
   const me = state.manager.clubId;
   const done = msg?.ok;
 
+  const reasons = demand.reasons.length > 0 && (
+    <ul className="muted" style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 13 }}>
+      {demand.reasons.map((r) => (
+        <li key={r}>{r}</li>
+      ))}
+    </ul>
+  );
+
   if (demand.refuses) {
     return (
       <>
         <p className="bad">{demand.refuses}</p>
+        {reasons}
         <button onClick={onDone}>Zavrieť</button>
       </>
     );
@@ -206,6 +215,7 @@ function ContractForm({ player, fee, renewal, onDone }: { player: Player; fee: n
         {fee ? `Klub súhlasí s prestupom za ${money(fee)}. ` : ''}
         {player.lastName} žiada približne {money(demand.wage)} mesačne{renewal ? ` (teraz má ${money(player.wage)})` : ''}.
       </p>
+      {reasons}
       {!done && (
         <>
           <label className="field">

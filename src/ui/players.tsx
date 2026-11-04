@@ -7,6 +7,7 @@ import { ageOn, marketValue, ovr } from '../engine/ratings';
 import type { Player, Position } from '../engine/types';
 import { seasonLabel } from '../engine/game';
 import { PlayerActions } from './transfersUi';
+import { PERSONALITY_INFO, PERSONALITY_NAMES } from '../engine/transfers';
 
 const POS_ORDER: Record<Position, number> = { B: 0, O: 1, Z: 2, U: 3 };
 
@@ -184,6 +185,10 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
         <dt>Vek</dt>
         <dd>
           {age} rokov ({Number(bd)}. {Number(bm)}. {by})
+        </dd>
+        <dt>Povaha</dt>
+        <dd>
+          {PERSONALITY_NAMES[p.personality ?? 'pohodar']} <span className="muted">– {PERSONALITY_INFO[p.personality ?? 'pohodar']}</span>
         </dd>
         <dt>Forma</dt>
         <dd>

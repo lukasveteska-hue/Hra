@@ -158,7 +158,17 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 ### Nákup
 - Vyhľadávanie hráčov podľa pozície, veku, OVR, potenciálu, ceny, ligy a dĺžky zmluvy.
 - Ponuka klubu → klub prijme / odmietne / dá protiponuku. Kluby nechcú predávať kľúčových hráčov lacno.
-- Po dohode s klubom treba dohodnúť **zmluvu s hráčom** (plat, dĺžka). Hráč môže odmietnuť (malý klub, nízky plat).
+- Po dohode s klubom treba dohodnúť **zmluvu s hráčom** (plat, dĺžka), 3 pokusy.
+- **Ochota hráča prestúpiť** (bez pevného limitu – vždy ostáva aspoň malá šanca):
+  - čím je hráč lepší oproti tvojmu tímu a čím väčší je jeho súčasný klub, tým skôr odmietne a tým vyšší plat chce,
+  - prestup do nižšej ligy je ťažší,
+  - **povaha** (viditeľná v detaile hráča): *ambiciózny* chce do väčšieho klubu, *žoldnier* ide za peniaze kamkoľvek (ale chce viac), *lojálny* nerád opúšťa svoj klub, *pohodár* bez vyhranených požiadaviek,
+  - **veteráni** (33+, a ešte viac 36+) idú oveľa ochotnejšie aj do slabšieho klubu a chcú nižší plat; medzi voľnými hráčmi je veľa skúsených veteránov,
+  - **mladé talenty** chcú do silného klubu,
+  - **hrací čas:** hráč, ktorý teraz sedí na lavičke a u teba by hral v základe, príde radšej; hráč zo základu, ktorý by u teba nehral, nerád,
+  - voľní hráči sú otvorenejší ponukám,
+  - hráč vždy povie dôvody svojho rozhodnutia; rozhodnutie je v rámci jedného prestupového obdobia stále rovnaké.
+- **Predĺženie zmluvy:** spokojný a lojálny hráč predĺži lacnejšie, nespokojný chce viac, ambiciózny hráč, ktorý je na klub príliš dobrý, môže odmietnuť.
 - **Voľní hráči** bez zmluvy sa dajú podpísať kedykoľvek.
 
 ### Zmluvy

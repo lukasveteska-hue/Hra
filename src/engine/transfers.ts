@@ -6,8 +6,8 @@ import { addMoney } from './finance';
 import { transferBan } from './management';
 import { generatePlayer, pickNationality } from './generator';
 import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, marketValue, ovr, roundMoney } from './ratings';
-import type { Rng } from './rng';
-import type { GameState, Offer, Player, Position } from './types';
+import { Rng } from './rng';
+import type { GameState, Offer, Personality, Player, Position } from './types';
 
 export const MAX_SQUAD = 35;
 const MIN_SQUAD = 18;
@@ -64,6 +64,45 @@ export interface ContractDemand {
   years: number;
   /** Hráč odmieta rokovať */
   refuses?: string;
+  /** Dôvody, prečo sa hráč tak rozhodol (zobrazia sa pri rokovaní) */
+  reasons: string[];
+}
+
+export const PERSONALITY_NAMES: Record<Personality, string> = {
+  ambiciozny: 'Ambiciózny',
+  zoldnier: 'Žoldnier',
+  lojalny: 'Lojálny',
+  pohodar: 'Pohodár',
+};
+
+export const PERSONALITY_INFO: Record<Personality, string> = {
+  ambiciozny: 'chce hrať vo veľkom klube, do slabšieho ide nerád',
+  zoldnier: 'ide mu hlavne o peniaze, pôjde aj do slabšieho klubu',
+  lojalny: 'je verný svojmu klubu, odchádza nerád',
+  pohodar: 'nemá vyhranené požiadavky',
+};
+
+/** Poradie hráča na jeho pozícii v klube (0 = najlepší) */
+function rankAtPosition(players: Player[], p: Player): number {
+  return players
+    .filter((x) => x.position === p.position && x.id !== p.id)
+    .filter((x) => ovr(x) > ovr(p)).length;
+}
+
+const STARTERS: Record<Position, number> = { B: 1, O: 4, Z: 4, U: 2 };
+
+function hashSeed(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Náhoda, ktorá je pre toho istého hráča v tom istom prestupovom období vždy rovnaká */
+function stableChance(key: string): number {
+  return new Rng(hashSeed(key)).next();
 }
 
 /** Požiadavky hráča na zmluvu s mojím klubom */
@@ -72,27 +111,125 @@ export function playerDemand(state: GameState, p: Player, renewal: boolean): Con
   const myClub = state.clubs[me];
   const myLeague = leagueKey(state, me);
   const age = ageOn(p.birthDate, state.date);
-  const base = fairWage({ ...p, priceFactor: LEAGUE_PRICE_FACTOR[myLeague] ?? p.priceFactor }, state.date, state.season, myLeague);
-  let f = 1.05;
-  const fromRep = p.clubId ? state.clubs[p.clubId].reputation : 50;
-  if (!renewal && transferBan(state)) {
-    return { wage: 0, years: 0, refuses: 'Klub má pre veľký dlh zákaz podpisovania nových hráčov.' };
-  }
-  if (!renewal) {
-    f += Math.max(0, fromRep - myClub.reputation) / 20;
-    // Výrazne lepší hráč nechce do slabšieho klubu
-    if (ovr(p) > teamAverage(state, me) + 14) {
-      return { wage: 0, years: 0, refuses: `${p.lastName} nemá záujem hrať za klub tejto úrovne.` };
+  // Plat sa odvíja od kvality hráča; veteráni chcú o niečo menej ako mladší hráč rovnakej kvality,
+  // ale nie toľko málo, ako by zodpovedalo ich nízkej trhovej hodnote
+  const asPrime = age > 28 ? { ...p, birthDate: `${state.season - 28}-01-01` } : p;
+  const primeWage = fairWage({ ...asPrime, priceFactor: LEAGUE_PRICE_FACTOR[myLeague] ?? p.priceFactor }, state.date, state.season, myLeague);
+  const base = age > 28 ? primeWage * Math.max(0.55, 1 - (age - 28) * 0.05) : primeWage;
+  const years = age >= 34 ? 1 : age >= 31 ? 2 : age <= 22 ? 4 : 3;
+  const personality = p.personality ?? 'pohodar';
+  const reasons: string[] = [];
+  const o = ovr(p);
+  const talent = age <= 23 && p.potential - o >= 8;
+
+  if (renewal) {
+    let f = 1.05 + (p.form / 20 - 0.5) * 0.2;
+    if (talent) f += 0.15;
+    if (p.morale < 40) {
+      f += 0.2;
+      reasons.push('Nie je spokojný, chce si výrazne polepšiť.');
+    } else if (p.morale > 75) {
+      f -= 0.05;
+      reasons.push('Je v klube spokojný.');
     }
-  } else {
-    f += (p.form / 20 - 0.5) * 0.2;
-    if (age <= 23 && p.potential - ovr(p) > 8) f += 0.15;
-    if (p.morale < 40) f += 0.15;
+    if (personality === 'zoldnier') {
+      f += 0.15;
+      reasons.push('Ide mu hlavne o peniaze.');
+    }
+    if (personality === 'lojalny') {
+      f -= 0.1;
+      reasons.push('Je verný klubu.');
+    }
+    // Ambiciózny hráč, ktorý je na klub príliš dobrý, nemusí chcieť predĺžiť
+    const gap = o - teamAverage(state, me);
+    if (personality === 'ambiciozny' && gap > 6) {
+      const pRefuse = Math.min(0.85, (gap - 6) * 0.12);
+      if (stableChance(`${p.id}|obnova|${state.season}|${state.date.slice(0, 7)}`) < pRefuse) {
+        return { wage: 0, years: 0, refuses: `${p.lastName} chce hrať vo väčšom klube a zmluvu predĺžiť nechce.`, reasons };
+      }
+      f += 0.15;
+      reasons.push('Má ambície hrať vyššie, predĺži len za dobrých podmienok.');
+    }
+    if (age >= 33) f -= 0.1;
+    const wage = roundMoney(Math.max(base * f, p.wage * 1.03), 100);
+    return { wage, years, reasons };
   }
-  // Pri predĺžení zmluvy chce hráč aspoň toľko, koľko má
-  const wage = roundMoney(Math.max(base * f, renewal ? p.wage * 1.05 : 0), 100);
-  const years = age >= 32 ? 1 : age >= 29 ? 2 : age <= 22 ? 4 : 3;
-  return { wage, years };
+
+  if (transferBan(state)) {
+    return { wage: 0, years: 0, refuses: 'Klub má pre veľký dlh zákaz podpisovania nových hráčov.', reasons };
+  }
+
+  const fromClub = p.clubId ? state.clubs[p.clubId] : null;
+  const fromRep = fromClub?.reputation ?? Math.min(myClub.reputation, 50);
+  const repGap = Math.max(0, fromRep - myClub.reputation);
+  const ovrGap = o - teamAverage(state, me);
+  const fromTier = fromClub?.leagueId ? state.leagues[fromClub.leagueId].tier : 1;
+  const myTier = myClub.leagueId ? state.leagues[myClub.leagueId].tier : 1;
+  const tierDrop = !!fromClub && myTier > fromTier;
+
+  // Hrací čas teraz a u mňa
+  const starterNow = fromClub ? rankAtPosition(clubPlayers(state, fromClub.id), p) < STARTERS[p.position] : false;
+  const wouldStart = rankAtPosition(clubPlayers(state, me), p) < STARTERS[p.position];
+
+  // Neochota prestúpiť
+  let r = 0.18 * Math.max(0, ovrGap - 4) + 0.06 * repGap + (tierDrop ? 0.8 : 0);
+  if (ovrGap > 8) reasons.push('Je oveľa lepší ako hráči tvojho tímu.');
+  if (repGap > 8) reasons.push(`${fromClub?.shortName ?? 'Jeho klub'} je výrazne väčší klub.`);
+  if (tierDrop) reasons.push('Nechce sa mu hrať v nižšej lige.');
+
+  if (personality === 'ambiciozny') {
+    r = r * 1.6 + 0.3;
+    if (repGap > 0 || ovrGap > 4) reasons.push('Je ambiciózny – chce hrať vo väčšom klube.');
+  } else if (personality === 'zoldnier') {
+    r *= 0.6;
+    reasons.push('Ide mu hlavne o peniaze.');
+  } else if (personality === 'lojalny' && fromClub) {
+    r += starterNow ? 0.9 : 0.3;
+    reasons.push(`Je verný klubu ${fromClub.shortName}.`);
+  }
+
+  if (age >= 36) {
+    r *= 0.3;
+    reasons.push('Skúsený veterán – rád si ešte zahrá, aj v menšom klube.');
+  } else if (age >= 33) {
+    r *= 0.5;
+    reasons.push('Vo svojom veku hľadá ešte jednu výzvu a istú zmluvu.');
+  } else if (age >= 30) {
+    r *= 0.8;
+  }
+  if (talent) {
+    r = r * 1.3 + 0.4;
+    reasons.push('Mladý talent – chce sa rozvíjať v silnom klube.');
+  }
+  if (fromClub && !starterNow && wouldStart) {
+    r -= 0.8;
+    reasons.push('Teraz veľa nehrá – u vás by bol v základnej zostave, to ho láka.');
+  } else if (starterNow && !wouldStart) {
+    r += 0.5;
+    reasons.push('U vás by nemal isté miesto v základe.');
+  }
+  if (!fromClub) {
+    r -= 0.4;
+    reasons.push('Je bez klubu, takže je otvorenejší ponukám.');
+  }
+
+  // Pravdepodobnosť odmietnutia – nikdy nie 100 %, malá šanca ostáva vždy
+  const pRefuse = Math.min(0.97, Math.max(0, 1 / (1 + Math.exp(-(r - 2.2) * 1.6)) - 0.03));
+  const roll = stableChance(`${p.id}|${me}|${state.season}|${transferWindow(state.date) ?? state.date.slice(0, 7)}`);
+  if (roll < pRefuse) {
+    const main = reasons.find((x) => !x.startsWith('Ide mu')) ?? 'Nemá záujem o prestup.';
+    return { wage: 0, years: 0, refuses: `${p.lastName} nemá záujem prestúpiť. ${main}`, reasons };
+  }
+
+  // Plat: väčší klub, nižšia liga, talent a neochota = vyššie požiadavky
+  let f = 1.05 + repGap / 25 + (tierDrop ? 0.15 : 0) + (talent ? 0.15 : 0) + Math.max(0, r) * 0.08;
+  if (personality === 'zoldnier') f += 0.25;
+  if (personality === 'lojalny') f += 0.1;
+  if (age >= 33) f -= 0.1;
+  if (fromClub && !starterNow && wouldStart) f -= 0.1;
+  const wage = roundMoney(Math.max(base * f, base * 0.8), 100);
+  if (pRefuse > 0.5) reasons.push('Prestup je pre neho veľký krok dolu – presvedčili ste ho len tesne.');
+  return { wage, years, reasons };
 }
 
 /** Prijme hráč ponúknutú zmluvu? */
@@ -375,12 +512,14 @@ export function generateFreeAgents(state: GameState, rng: Rng, count: number): v
   for (let i = 0; i < count; i++) {
     const country = rng.chance(0.55) ? 'CZ' : 'SK';
     const pos = rng.pick<Position>(['B', 'O', 'O', 'Z', 'Z', 'Z', 'U', 'U']);
-    const age = rng.int(19, 34);
+    // Asi tretina voľných hráčov sú skúsení veteráni, ktorí kedysi patrili k lepším
+    const veteran = rng.chance(0.35);
+    const age = veteran ? rng.int(33, 38) : rng.int(19, 32);
     const p = generatePlayer(rng, {
       id: `v${state.nextId++}`,
       position: pos,
       age,
-      targetOvr: rng.range(38, 64),
+      targetOvr: veteran ? rng.range(55, 72) : rng.range(38, 62),
       nationality: pickNationality(rng, country),
       season: state.season,
       clubId: null,
