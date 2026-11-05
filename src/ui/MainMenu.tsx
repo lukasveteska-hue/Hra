@@ -13,7 +13,13 @@ import { DatabaseScreen } from './DatabaseScreen';
 export function MainMenu({ onStart }: { onStart: (s: GameState) => void }) {
   const [mode, setMode] = useState<'menu' | 'new' | 'load' | 'db'>('menu');
   const [error, setError] = useState<string | null>(null);
+  const [last, setLast] = useState<SaveMeta | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Posledná uložená hra (na tlačidlo Pokračovať)
+  useEffect(() => {
+    listSaves().then((l) => setLast(l[0] ?? null)).catch(() => {});
+  }, []);
 
   const importFile = async (f: File | undefined) => {
     if (!f) return;
@@ -34,7 +40,18 @@ export function MainMenu({ onStart }: { onStart: (s: GameState) => void }) {
         <div className="title">⚽ Futbalový manažér</div>
         <p className="muted">Česká a slovenská liga</p>
         <div className="panel menu-buttons">
-          <button className="primary" onClick={() => setMode('new')}>
+          {last && (
+            <button
+              className="primary"
+              onClick={async () => {
+                const s = await loadGame(last.slot);
+                if (s) onStart(s);
+              }}
+            >
+              ▶ Pokračovať – {last.clubName} ({last.gameDate.split('-').reverse().join('. ')})
+            </button>
+          )}
+          <button className={last ? '' : 'primary'} onClick={() => setMode('new')}>
             Nová hra
           </button>
           <button onClick={() => setMode('load')}>Načítať hru</button>
