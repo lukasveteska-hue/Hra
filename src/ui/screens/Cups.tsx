@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { COMP_NAMES, compTable, EURO, STAGE_NAMES, stagesOf, type CompId } from '../../engine/cups';
 import type { Fixture } from '../../engine/types';
 import { useGame } from '../GameContext';
+import { ClubLink } from '../NavContext';
 import { ClubBadge, Flag } from '../common';
 import { formatDateShort } from '../dates';
 
@@ -113,10 +114,9 @@ function TieList({ fixtures, single }: { fixtures: Fixture[]; single?: boolean }
               <tr key={legs[0].id} className={mine ? 'highlight' : undefined}>
                 <td className="muted">{formatDateShort(legs[0].date)}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <span className="club-cell" style={{ fontWeight: winner === a ? 700 : 400 }}>
+                  <span className="club-cell">
                     {!club(a).leagueId && <Flag code={club(a).country} showCode={false} />}
-                    {club(a).shortName}
-                    <ClubBadge club={club(a)} size={18} />
+                    <ClubLink id={a} bold={winner === a} />
                   </span>
                 </td>
                 <td className="center" style={{ whiteSpace: 'nowrap' }}>
@@ -129,9 +129,8 @@ function TieList({ fixtures, single }: { fixtures: Fixture[]; single?: boolean }
                   {pen && done && <div className="muted" style={{ fontSize: 11 }}>po penaltách</div>}
                 </td>
                 <td>
-                  <span className="club-cell" style={{ fontWeight: winner === b ? 700 : 400 }}>
-                    <ClubBadge club={club(b)} size={18} />
-                    {club(b).shortName}
+                  <span className="club-cell">
+                    <ClubLink id={b} bold={winner === b} />
                     {!club(b).leagueId && <Flag code={club(b).country} showCode={false} />}
                   </span>
                 </td>
@@ -176,10 +175,7 @@ function LeaguePhase({ comp }: { comp: CompId }) {
                   {i + 1}.
                 </td>
                 <td className="sticky">
-                  <span className="club-cell">
-                    <ClubBadge club={c} size={18} />
-                    {c.shortName}
-                  </span>
+                  <ClubLink id={c.id} />
                 </td>
                 <td>
                   <Flag code={c.country} />
@@ -238,12 +234,7 @@ function CompScorers({ comp }: { comp: CompId }) {
                   {p.firstName} {p.lastName} <Flag code={p.nationality} showCode={false} />
                 </td>
                 <td>
-                  {c && (
-                    <span className="club-cell">
-                      <ClubBadge club={c} size={16} />
-                      {c.shortName}
-                    </span>
-                  )}
+                  {c && <ClubLink id={c.id} size={16} />}
                 </td>
                 <td className="num">
                   <strong>{s.goals}</strong>

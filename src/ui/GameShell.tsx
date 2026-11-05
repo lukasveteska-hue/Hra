@@ -8,6 +8,7 @@ import { useGame } from './GameContext';
 import { ClubBadge, formatDate, money } from './common';
 import { MatchScreen } from './MatchScreen';
 import { clubTheme } from './clubTheme';
+import { NavContext } from './NavContext';
 import { ClubScreen } from './screens/Club';
 import { CompetitionsScreen, LeagueScreen } from './screens/League';
 import { Overview } from './screens/Overview';
@@ -162,7 +163,9 @@ export function GameShell() {
             </button>
           ))}
         </nav>
-        <main className="content">{main}</main>
+        <main className="content">
+          <NavContext.Provider value={{ openClub }}>{main}</NavContext.Provider>
+        </main>
       </div>
     </div>
   );

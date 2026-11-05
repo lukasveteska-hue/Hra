@@ -1,6 +1,7 @@
 // Tabuľka hráčov a detail hráča
 
 import { useGame } from './GameContext';
+import { ClubLink } from './NavContext';
 import { Attr, ClubBadge, DataTable, Flag, FormArrow, Modal, Pos, POS_NAME, attrColor, money, type Column } from './common';
 import { countryName } from '../data/countries';
 import { ageOn, marketValue, ovr } from '../engine/ratings';
@@ -53,10 +54,7 @@ export function PlayerTable({
       render: (p) => {
         const c = p.clubId ? state.clubs[p.clubId] : null;
         return c ? (
-          <span className="club-cell">
-            <ClubBadge club={c} size={16} />
-            {c.shortName}
-          </span>
+          <ClubLink id={c.id} size={16} />
         ) : (
           <span className="muted">bez klubu</span>
         );

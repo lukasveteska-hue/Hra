@@ -3,6 +3,7 @@ import { formatDateShort } from '../dates';
 import { standings, type TableRow } from '../../engine/standings';
 import type { Fixture } from '../../engine/types';
 import { useGame } from '../GameContext';
+import { ClubLink } from '../NavContext';
 import { playoffName } from '../../engine/playoffs';
 import { RATING_ICON, RATING_NAMES } from '../../engine/newSeason';
 import { seasonLabel } from '../../engine/game';
@@ -327,20 +328,14 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
                   </td>
                 )}
                 <td style={{ textAlign: 'right' }}>
-                  <span className="club-cell">
-                    {h.shortName}
-                    <ClubBadge club={h} size={18} />
-                  </span>
+                  <ClubLink id={h.id} />
                 </td>
                 <td className="center" style={{ width: 60 }}>
                   <strong>{f.played ? `${f.homeGoals}:${f.awayGoals}` : '–:–'}</strong>
                   {f.penaltyWinner && <div className="muted" style={{ fontSize: 10 }}>pen. {state.clubs[f.penaltyWinner].shortName}</div>}
                 </td>
                 <td>
-                  <span className="club-cell">
-                    <ClubBadge club={a} size={18} />
-                    {a.shortName}
-                  </span>
+                  <ClubLink id={a.id} />
                 </td>
                 <td className="muted" style={{ whiteSpace: 'normal', fontSize: 12, minWidth: 200 }}>
                   {f.goals.map(([m, pid]) => `${state.players[pid]?.lastName ?? '?'} ${m}'`).join(', ')}
@@ -391,10 +386,7 @@ function Scorers({ leagueId }: { leagueId: string }) {
                   <Flag code={p.nationality} />
                 </td>
                 <td>
-                  <span className="club-cell">
-                    <ClubBadge club={c} size={16} />
-                    {c.shortName}
-                  </span>
+                  <ClubLink id={c.id} size={16} />
                 </td>
                 <td className="num">
                   <strong>{s.goals}</strong>

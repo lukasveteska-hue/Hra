@@ -6,6 +6,7 @@ import { Rng } from '../../engine/rng';
 import { acceptOffer, counterOffer, rejectOffer } from '../../engine/transfers';
 import type { Offer } from '../../engine/types';
 import { useGame } from '../GameContext';
+import { ClubLink } from '../NavContext';
 import { ClubBadge, Flag, formatDate, money, Pos } from '../common';
 import { PlayerDetail } from '../players';
 import { PlayersScreen } from './Players';
@@ -120,7 +121,7 @@ function OfferCard({ offer }: { offer: Offer }) {
         {buyer ? <ClubBadge club={buyer} size={30} /> : <Flag code={offer.foreignCountry ?? ''} showCode={false} />}
         {buyer && !buyer.leagueId && <Flag code={buyer.country} showCode={false} />}
         <div>
-          <strong>{buyer ? buyer.name : offer.foreignName}</strong>
+          <strong>{buyer ? <ClubLink id={buyer.id} full badge={false} /> : offer.foreignName}</strong>
           <div className="muted" style={{ fontSize: 12 }}>
             {buyer?.leagueId ? 'domáca liga' : 'zahraničie'} · platí do {formatDate(offer.expires)}
           </div>
@@ -174,7 +175,7 @@ function History() {
     .slice()
     .reverse()
     .slice(0, 200);
-  const name = (id: string | null, alt?: string) => (id ? state.clubs[id]?.shortName : alt ?? '–');
+  const name = (id: string | null, alt?: string) => (id && state.clubs[id] ? <ClubLink id={id} size={16} /> : alt ?? '–');
   return (
     <>
       <label className="row" style={{ marginBottom: 10 }}>

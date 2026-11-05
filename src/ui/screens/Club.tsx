@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { leagueOf, squadOf, staffOf, wageBill } from '../../engine/game';
 import { STAFF_ROLES } from '../../engine/database';
-import { ageOn } from '../../engine/ratings';
+import { ageOn, ovr } from '../../engine/ratings';
+import { standings } from '../../engine/standings';
+import { countryName } from '../../data/countries';
 import { marketValue } from '../../engine/ratings';
 import type { Player } from '../../engine/types';
 import { useGame } from '../GameContext';
@@ -14,6 +16,11 @@ export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => v
   const club = state.clubs[clubId];
   const squad = squadOf(state, clubId);
   const value = squad.reduce((s, p) => s + marketValue(p, state.date, state.season), 0);
+  const league = leagueOf(state, club);
+  const pos = league ? standings(state, league.id).findIndex((r) => r.clubId === clubId) + 1 : 0;
+  const listed = squad.filter((p) => p.listed).length;
+  const mine = clubId === state.manager.clubId;
+  const avg = squad.map(ovr).sort((a, b) => b - a).slice(0, 11).reduce((a, b, _i, arr) => a + b / arr.length, 0);
 
   return (
     <>
@@ -25,11 +32,32 @@ export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => v
         <div>
           <h1 style={{ margin: 0 }}>{club.name}</h1>
           <div className="muted">
-            {leagueOf(state, club)?.name} · {club.city} · {club.stadium} ({club.capacity.toLocaleString('sk-SK')})
+            {league ? (
+              <>
+                {league.name} · {pos}. miesto{club.city ? ` · ${club.city}` : ''}
+                {club.stadium ? ` · ${club.stadium} (${club.capacity.toLocaleString('sk-SK')})` : ''}
+              </>
+            ) : (
+              <>
+                <Flag code={club.country} showCode={false} /> {countryName(club.country)} · zahraničný klub
+              </>
+            )}
           </div>
         </div>
       </div>
       <div className="grid-3" style={{ marginBottom: 16 }}>
+        <div className="stat">
+          <div className="label">Sila klubu · priemer zostavy</div>
+          <div className="value">
+            {Math.round(club.reputation)} · {avg.toFixed(1)}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="label">Hráčov · na predaj</div>
+          <div className="value">
+            {squad.length} · {listed}
+          </div>
+        </div>
         <div className="stat">
           <div className="label">Hodnota kádra</div>
           <div className="value">{money(value)}</div>
@@ -43,6 +71,11 @@ export function ClubScreen({ clubId, onBack }: { clubId: string; onBack: () => v
           <div className="value">{money(club.balance)}</div>
         </div>
       </div>
+      {!mine && (
+        <p className="muted" style={{ marginTop: 0 }}>
+          Klikni na hráča – v jeho detaile môžeš podať ponuku na kúpu. Hráči s 💲 sú na predaj.
+        </p>
+      )}
       <PlayerTable players={squad} onSelect={setSelected} />
       <StaffList clubId={clubId} />
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} />}
