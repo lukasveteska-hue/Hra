@@ -10,7 +10,11 @@ export default function App() {
 
   // Každá zmena stavu sa automaticky uloží
   const setState = useCallback((s: GameState) => {
-    setStateRaw(s);
+    setStateRaw((prev) => {
+      // Pri začatí alebo načítaní hry ísť na začiatok stránky
+      if (!prev) window.scrollTo(0, 0);
+      return s;
+    });
     saveGame(s, AUTOSAVE_SLOT, 'Automatické uloženie').catch(console.error);
   }, []);
 

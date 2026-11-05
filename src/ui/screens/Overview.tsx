@@ -17,7 +17,9 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
   const top11 = squad.map(ovr).sort((a, b) => b - a).slice(0, 11);
   const avg = top11.reduce((a, b) => a + b, 0) / Math.max(1, top11.length);
   const value = squad.reduce((s, p) => s + marketValue(p, state.date, state.season), 0);
-  const leagueRank = league ? standings(state, league.id).findIndex((r) => r.clubId === club.id) + 1 : null;
+  // Miesto v tabuľke až po prvom odohranom zápase
+  const myRow = league ? standings(state, league.id).find((r) => r.clubId === club.id) : undefined;
+  const leagueRank = league && myRow?.played ? standings(state, league.id).findIndex((r) => r.clubId === club.id) + 1 : null;
   const myFixtures = state.seasonData.fixtures.filter((f) => isMine(state, f));
   const next = myFixtures.find((f) => !f.played);
   const recent = myFixtures.filter((f) => f.played).slice(-3);
@@ -126,7 +128,7 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
             <dd>{league?.name}</dd>
             <dt>Miesto v tabuľke</dt>
             <dd>
-              {leagueRank}. z {league?.clubIds.length}
+              {leagueRank ? `${leagueRank}. z ${league?.clubIds.length}` : 'sezóna ešte nezačala'}
             </dd>
             <dt>Cieľ vedenia</dt>
             <dd>
