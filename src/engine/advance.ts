@@ -11,6 +11,7 @@ import { addMoney, matchdayIncome, monthlyFinance, seasonPrizes, squadValue } fr
 import { finishProjects } from './management';
 import { monthlyDevelopment } from './development';
 import { createPlayoffsIfReady, playoffsDone, resolvePlayoffsIfReady } from './playoffs';
+import { competitionsDone, progressCompetitions } from './cups';
 import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
@@ -38,7 +39,7 @@ export function nextMyFixture(state: GameState): Fixture | null {
 }
 
 export function seasonFinished(state: GameState): boolean {
-  return state.seasonData.fixtures.every((f) => f.played) && Object.values(state.seasonData.splitDone).every(Boolean) && playoffsDone(state);
+  return state.seasonData.fixtures.every((f) => f.played) && Object.values(state.seasonData.splitDone).every(Boolean) && playoffsDone(state) && competitionsDone(state);
 }
 
 /** Taktika pre klub v zápase (počítač) */
@@ -70,7 +71,8 @@ export function applyResult(state: GameState, fixtureId: string, r: MatchResult,
   f.awayGoals = r.awayGoals;
   f.goals = r.goals;
 
-  const stats = state.seasonData.stats;
+  // Ligové štatistiky zvlášť, pohárové zvlášť (podľa súťaže)
+  const stats = state.leagues[f.leagueId] ? state.seasonData.stats : ((state.seasonData.compStats ??= {})[f.leagueId] ??= {});
   const st = (id: string) => (stats[id] ??= { apps: 0, goals: 0, assists: 0, yellow: 0, red: 0, ratingSum: 0 });
 
   // Odpykanie trestov – hráči s trestom tento zápas nehrali
@@ -166,6 +168,7 @@ function dailyUpdate(state: GameState): void {
  */
 function endDay(state: GameState, rng: Rng): number {
   playPendingFixtures(state, rng);
+  progressCompetitions(state, rng);
   snapshotTables(state);
   if (seasonFinished(state)) seasonPrizes(state);
   expireOffers(state);
@@ -255,6 +258,7 @@ export function finishMyMatch(state: GameState, results: Array<{ fixtureId: stri
   for (const { fixtureId, result } of results) applyResult(s, fixtureId, result, rng);
   createPlayoffsIfReady(s);
   resolvePlayoffsIfReady(s, rng);
+  progressCompetitions(s, rng);
   if (seasonFinished(s)) {
     snapshotTables(s);
     seasonPrizes(s);

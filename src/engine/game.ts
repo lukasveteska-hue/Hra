@@ -9,9 +9,10 @@ import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
 import { generateFreeAgents } from './transfers';
 import { expectedPosition, initialManagement } from './management';
+import { euroEntrantsFrom, initCompetitions } from './cups';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {
@@ -138,6 +139,13 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
   };
   initialManagement(state, rng);
   generateFreeAgents(state, rng, 55);
+  // Prvá sezóna: miesta v Európe podľa sily klubov
+  const byRep = (country: string) =>
+    Object.values(clubs)
+      .filter((c) => c.leagueId === `${country}1`)
+      .sort((a, b) => b.reputation - a.reputation)
+      .map((c) => c.id);
+  initCompetitions(state, euroEntrantsFrom({ CZ: byRep('CZ'), SK: byRep('SK') }, {}), rng);
   state.seasonData.boardTarget = expectedPosition(state, opts.clubId);
   state.seasonData.start = seasonStartSnapshot(state);
   state.seasonData.valueHistory = [{ date, value: state.seasonData.start.squadValue }];

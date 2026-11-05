@@ -122,5 +122,10 @@ function migrate(state: GameState): GameState {
     state.history ??= [];
     state.version = 7;
   }
+  if (state.version < 8) {
+    // Staršie hry: poháre začnú od ďalšej sezóny
+    state.seasonData.comps ??= {};
+    state.version = 8;
+  }
   return state;
 }

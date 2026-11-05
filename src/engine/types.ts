@@ -281,6 +281,8 @@ export interface SeasonHistory {
   /** Najdrahší predaj a nákup môjho klubu */
   bestSale?: { name: string; fee: number };
   bestBuy?: { name: string; fee: number };
+  /** Kam sa môj klub dostal v pohároch (súťaž → fáza) */
+  cupResults?: Record<string, string>;
 }
 
 // ---------- Fáza 3: prestupy, financie, história ----------

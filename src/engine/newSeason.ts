@@ -8,6 +8,7 @@ import { expectedPosition, initialManagement, makeSponsorOffers } from './manage
 import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
 import { Rng } from './rng';
 import { createSeason } from './schedule';
+import { EURO, euroEntrantsFrom, initCompetitions } from './cups';
 import { standings } from './standings';
 import { autoLineup, defaultTactic } from './tactics';
 import { freeAgents, generateFreeAgents, teamAverage } from './transfers';
@@ -48,6 +49,12 @@ export function boardRating(state: GameState): { rating: BoardRating; position: 
     position === 1 ? 'vyborna' : diff >= 3 ? 'vyborna' : diff >= 1 ? 'uspesna' : diff >= -1 ? 'prijatelna' : diff >= -4 ? 'neuspesna' : 'katastrofalna';
   if (myMove && (myMove.reason === 'postup' || myMove.reason === 'baraz-postup')) rating = myMove.reason === 'postup' ? 'vyborna' : 'uspesna';
   if (myMove && (myMove.reason === 'zostup' || myMove.reason === 'baraz-zostup')) rating = target >= position - 1 ? 'neuspesna' : 'katastrofalna';
+  // Úspech v pohároch zlepší hodnotenie o stupeň
+  const comps = state.seasonData.comps ?? {};
+  const cupWin = ['POHAR-CZ', 'POHAR-SK'].some((c) => comps[c]?.champion === me);
+  const euroRun = EURO.some((c) => ['lf', 'kpo', 'r16', 'qf', 'sf', 'f', 'vitaz'].includes(comps[c]?.reached[me] ?? ''));
+  const levels: BoardRating[] = ['katastrofalna', 'neuspesna', 'prijatelna', 'uspesna', 'vyborna'];
+  if ((cupWin || euroRun) && rating !== 'katastrofalna') rating = levels[Math.min(4, levels.indexOf(rating) + 1)];
   const text =
     rating === 'vyborna'
       ? 'Vedenie je nadšené. Sezóna prekonala všetky očakávania.'
@@ -204,6 +211,15 @@ export function startNewSeason(prev: GameState): { state: GameState; report: Tra
   // ---------- História ----------
   const champions: Record<string, string> = {};
   for (const l of Object.values(state.leagues)) champions[l.id] = standings(state, l.id)[0]?.clubId;
+  for (const [id, cs] of Object.entries(state.seasonData.comps ?? {})) if (cs.champion) champions[id] = cs.champion;
+  const cupResults: Record<string, string> = {};
+  for (const [id, cs] of Object.entries(state.seasonData.comps ?? {})) if (cs.reached[me]) cupResults[id] = cs.reached[me];
+  // Miesta v Európe na ďalšiu sezónu (pred presunmi medzi ligami)
+  const order = { CZ: standings(state, 'CZ1').map((r) => r.clubId), SK: standings(state, 'SK1').map((r) => r.clubId) };
+  const nextEuro = euroEntrantsFrom(order, {
+    CZ: state.seasonData.comps?.['POHAR-CZ']?.champion || undefined,
+    SK: state.seasonData.comps?.['POHAR-SK']?.champion || undefined,
+  });
   const myStats = Object.entries(state.seasonData.stats).filter(([id]) => state.players[id]?.clubId === me);
   const top = myStats.sort((a, b) => b[1].goals - a[1].goals)[0];
   const leagueClubs = new Set(state.leagues[leagueId].clubIds);
@@ -240,6 +256,7 @@ export function startNewSeason(prev: GameState): { state: GameState; report: Tra
     moves,
     bestSale: sale ? { name: sale.playerName, fee: sale.fee } : undefined,
     bestBuy: buy ? { name: buy.playerName, fee: buy.fee } : undefined,
+    cupResults,
   };
   const prevSame = state.history[state.history.length - 1];
   const fired = rating === 'katastrofalna' || (rating === 'neuspesna' && prevSame?.clubId === me && prevSame.rating === 'neuspesna');
@@ -289,6 +306,7 @@ export function startNewSeason(prev: GameState): { state: GameState; report: Tra
   state.offers = [];
   state.ledger = [];
   state.seasonData = createSeason(state, rng);
+  initCompetitions(state, nextEuro, rng);
   state.management.sponsor = null;
   state.management.sponsorOffers = makeSponsorOffers(state, rng);
   const squad = Object.values(state.players).filter((p) => p.clubId === me);

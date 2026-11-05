@@ -299,7 +299,13 @@ function resolveStage(state: GameState, cs: CompState, idx: number, rng: Rng): b
     for (const r of table) {
       if (!isDomestic(state, r.clubId)) continue;
       const pos = table.indexOf(r) + 1;
-      payout(state, cs.id, r.clubId, '', '');
+      if (pos <= 8) {
+        cs.reached[r.clubId] = 'r16';
+        payout(state, cs.id, r.clubId, 'r16', 'priamy postup do osemfinále');
+      } else if (pos <= 24) {
+        cs.reached[r.clubId] = 'kpo';
+        payout(state, cs.id, r.clubId, 'kpo', 'postup do play-off');
+      }
       const prize = PRIZE[cs.id as 'LM'];
       if (r.won) addMoney(state, r.clubId, 'odmena', prize.win * r.won, `${COMP_NAMES[cs.id]} – ${r.won}× výhra v ligovej fáze`);
       if (r.drawn) addMoney(state, r.clubId, 'odmena', prize.draw * r.drawn, `${COMP_NAMES[cs.id]} – ${r.drawn}× remíza v ligovej fáze`);

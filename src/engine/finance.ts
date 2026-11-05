@@ -108,10 +108,13 @@ export function matchdayIncome(state: GameState, f: Fixture, rng: Rng): void {
   const tableBonus = ((of - pos) / Math.max(1, of - 1) - 0.5) * 0.2;
   const derby = home.city === away.city ? 0.15 : 0;
   const weather = weatherAttendance(weatherFor(f.id, f.date));
-  const interest = 0.25 + home.reputation / 200 + tableBonus + (away.reputation - 55) / 250 + derby + weather + rng.normal(0, 0.05);
+  // Európske zápasy lákajú viac divákov, pohár menej (okrem neskorých kôl)
+  const euro = ['LM', 'EL', 'KL'].includes(f.leagueId) ? 0.3 + (f.phase === 'lf' || f.phase.startsWith('q') || f.phase === 'po' ? 0 : 0.15) : 0;
+  const cup = f.leagueId.startsWith('POHAR') ? (['sf', 'f'].includes(f.phase) ? 0.15 : -0.12) : 0;
+  const interest = 0.25 + home.reputation / 200 + tableBonus + (away.reputation - 55) / 250 + derby + weather + euro + cup + rng.normal(0, 0.05);
   const fill = Math.max(0.05, Math.min(0.98, interest * priceDemand(state, home.id)));
   const attendance = Math.round(home.capacity * fill);
-  const price = ticketPriceOf(state, home.id);
+  const price = ticketPriceOf(state, home.id) * (euro ? 1.6 : 1);
   f.attendance = attendance;
   addMoney(state, home.id, 'vstupne', attendance * price, `Vstupné: ${home.shortName} – ${away.shortName} (${attendance.toLocaleString('sk-SK')} divákov)`);
 }
