@@ -8,6 +8,7 @@ import { ageOn, marketValue, ovr } from '../engine/ratings';
 import type { Player, Position } from '../engine/types';
 import { seasonLabel } from '../engine/game';
 import { PlayerActions } from './transfersUi';
+import { LineChart, SERIES } from './charts';
 import { PERSONALITY_INFO, PERSONALITY_NAMES } from '../engine/transfers';
 
 const POS_ORDER: Record<Position, number> = { B: 0, O: 1, Z: 2, U: 3 };
@@ -63,7 +64,29 @@ export function PlayerTable({
     });
   }
   columns.push(
-    { key: 'ovr', label: 'Celk', title: 'Celkové hodnotenie', className: 'num', render: (p) => <Attr v={ovr(p)} />, sort: ovr, desc: true },
+    {
+      key: 'ovr',
+      label: 'Celk',
+      title: 'Celkové hodnotenie (šípka = zmena za posledný mesiac)',
+      className: 'num',
+      render: (p) => (
+        <>
+          <Attr v={ovr(p)} />
+          <Trend d={p.ovrDelta} />
+        </>
+      ),
+      sort: ovr,
+      desc: true,
+    },
+    {
+      key: 'trend',
+      label: '±',
+      title: 'Zmena hodnotenia za posledný mesiac',
+      className: 'num',
+      render: (p) => (p.ovrDelta ? <span className={p.ovrDelta > 0 ? 'delta-up' : 'delta-down'}>{p.ovrDelta > 0 ? `+${p.ovrDelta.toFixed(1)}` : p.ovrDelta.toFixed(1)}</span> : <span className="muted">–</span>),
+      sort: (p) => p.ovrDelta ?? 0,
+      desc: true,
+    },
     { key: 'pot', label: 'Pot', title: 'Potenciál', className: 'num', render: (p) => <Attr v={p.potential} />, sort: (p) => p.potential, desc: true },
     { key: 'fyz', label: 'Fyz', title: 'Fyzické', className: 'num', render: (p) => <Attr v={p.fyz} />, sort: (p) => p.fyz, desc: true },
     { key: 'tech', label: 'Tech', title: 'Technické', className: 'num', render: (p) => <Attr v={p.tech} />, sort: (p) => p.tech, desc: true },
@@ -101,6 +124,17 @@ export function PlayerTable({
       initialSort={{ key: 'pos', dir: 'asc' }}
       rowClass={(p) => (p.clubId === state.manager.clubId && showClub ? 'highlight' : undefined)}
     />
+  );
+}
+
+/** Šípka vývoja hodnotenia za posledný mesiac */
+export function Trend({ d }: { d?: number }) {
+  if (!d || Math.abs(d) < 0.05) return null;
+  const up = d > 0;
+  return (
+    <span className={`trend ${up ? 'up' : 'down'}`} title={`${up ? '+' : ''}${d.toFixed(1)} za posledný mesiac`}>
+      {up ? '▲' : '▼'}
+    </span>
   );
 }
 
@@ -160,6 +194,28 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
         </div>
       </div>
 
+      {p.ovrDelta !== undefined && (
+        <p style={{ margin: '8px 0 0' }}>
+          Vývoj za posledný mesiac:{' '}
+          <strong className={p.ovrDelta > 0 ? 'delta-up' : p.ovrDelta < 0 ? 'delta-down' : 'muted'}>
+            {p.ovrDelta > 0 ? `▲ +${p.ovrDelta.toFixed(1)}` : p.ovrDelta < 0 ? `▼ ${p.ovrDelta.toFixed(1)}` : 'bez zmeny'}
+          </strong>
+        </p>
+      )}
+      {p.ovrHistory && p.ovrHistory.length >= 3 && (
+        <>
+          <h3 style={{ marginTop: 16 }}>Vývoj hodnotenia</h3>
+          <LineChart
+            series={[{ name: 'Celkové hodnotenie', color: SERIES[0], values: p.ovrHistory.map((x) => x[1]) }]}
+            xLabels={p.ovrHistory.map((x) => `${x[0] % 100}/${String(Math.floor(x[0] / 100)).slice(2)}`)}
+            height={160}
+            yMin={Math.floor(Math.min(...p.ovrHistory.map((x) => x[1]))) - 1}
+            yMax={Math.ceil(Math.max(...p.ovrHistory.map((x) => x[1]))) + 1}
+            integerTicks
+            format={(v) => (Number.isInteger(v) ? String(v) : v.toFixed(1))}
+          />
+        </>
+      )}
       <h3 style={{ marginTop: 16 }}>Atribúty</h3>
       <div className="attr-bars">
         <AttrBar label="Fyzické" v={p.fyz} />

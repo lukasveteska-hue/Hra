@@ -1100,3 +1100,15 @@ table.data th.center {
   color: var(--accent-2);
   background: var(--bg);
 }
+/* Šípka vývoja hodnotenia */
+.trend {
+  font-size: 10px;
+  margin-left: 3px;
+  vertical-align: 1px;
+}
+.trend.up {
+  color: var(--good);
+}
+.trend.down {
+  color: var(--bad);
+}

@@ -67,6 +67,10 @@ export interface Player {
   askingPrice: number | null;
   /** Hráč odišiel do zahraničia (názov klubu) – už nehrá v hre */
   abroad?: string;
+  /** Zmena celkového hodnotenia pri poslednej mesačnej zmene */
+  ovrDelta?: number;
+  /** História celkového hodnotenia: [rok*100+mesiac, hodnotenie] */
+  ovrHistory?: Array<[number, number]>;
 }
 
 export type Country = 'CZ' | 'SK' | string;

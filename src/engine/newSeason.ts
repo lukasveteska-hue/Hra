@@ -297,6 +297,7 @@ export function startNewSeason(prev: GameState): { state: GameState; report: Tra
 
   for (const p of Object.values(state.players)) {
     p.yellowCards = 0;
+    p.ovrDelta = undefined;
     p.form = Math.max(4, Math.min(16, Math.round(p.form * 0.5 + 5 + rng.normal(0, 1.5))));
     p.morale = Math.round(p.morale * 0.5 + 35);
     p.energy = 100;

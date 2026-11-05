@@ -73,10 +73,12 @@ export function monthlyDevelopment(state: GameState, rng: Rng): void {
     played.set(f.homeId, (played.get(f.homeId) ?? 0) + 1);
     played.set(f.awayId, (played.get(f.awayId) ?? 0) + 1);
   }
+  const month = Number(state.date.slice(0, 4)) * 100 + Number(state.date.slice(5, 7));
   for (const p of Object.values(state.players)) {
     if (p.abroad) continue;
     const age = ageOn(p.birthDate, state.date);
     const o = ovr(p);
+    const before = o;
     const decline = yearlyDecline(age, p.position);
     if (decline > 0) {
       applyDelta(p, -(decline / 10) * rng.range(0.4, 1.6), rng, true);
@@ -94,10 +96,22 @@ export function monthlyDevelopment(state: GameState, rng: Rng): void {
       const month = (yearly / 10) * (rng.chance(0.25) ? 0 : rng.range(0.3, 2));
       if (month > 0) applyDelta(p, Math.min(month, ceil - o), rng, false);
     }
+    // Malé výkyvy z tréningu (dlhodobo sa vyrovnajú), aby bol vývoj vidieť každý mesiac
+    if (age <= 33) {
+      const wobble = rng.normal(0, 0.2);
+      if (wobble > 0 && ovr(p) + wobble <= ceil) applyDelta(p, wobble, rng, false);
+      else if (wobble < 0) applyDelta(p, wobble, rng, false);
+    }
     // Zobrazený potenciál nikdy pod aktuálnym hodnotením; u starších sa potenciál zníži na súčasný stav
     const now = ovr(p);
     if (now > p.potential) p.potential = Math.round(now);
     if (age >= 30 && p.potential > now + 1) p.potential = Math.max(Math.round(now), p.potential - 1);
+    // Zmena za posledný mesiac a história hodnotenia (posledných 12 mesiacov)
+    p.ovrDelta = Math.round((now - before) * 10) / 10;
+    const prevMonth = month % 100 === 1 ? month - 89 : month - 1;
+    const hist = p.ovrHistory ?? [[prevMonth, Math.round(before * 10) / 10]];
+    hist.push([month, Math.round(now * 10) / 10]);
+    p.ovrHistory = hist.slice(-13);
   }
 }
 
