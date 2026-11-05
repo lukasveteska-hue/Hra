@@ -1,13 +1,13 @@
 // Prestupový trh: ponuky, vyjednávanie, zmluvy, počítačové prestupy
 
-import { FOREIGN_CLUBS, type ForeignClub } from '../data/foreignClubs';
+import type { ForeignClub } from '../data/foreignClubs';
 import { addDays, transferWindow } from './calendar';
 import { addMoney } from './finance';
 import { transferBan } from './management';
 import { generatePlayer, pickNationality } from './generator';
 import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, marketValue, ovr, roundMoney } from './ratings';
 import { Rng } from './rng';
-import type { GameState, Offer, Personality, Player, Position } from './types';
+import type { Club, GameState, Offer, Personality, Player, Position } from './types';
 
 export const MAX_SQUAD = 35;
 const MIN_SQUAD = 18;
@@ -299,10 +299,13 @@ export function executeTransfer(
 
 // ---------- Ponuky na mojich hráčov ----------
 
-function foreignBuyerFor(state: GameState, p: Player, rng: Rng): ForeignClub | null {
+function foreignBuyerFor(state: GameState, p: Player, rng: Rng): Club | null {
   const o = ovr(p);
   const age = ageOn(p.birthDate, state.date);
-  const fits = FOREIGN_CLUBS.filter((c) => o >= c.reputation - 13 || (age <= 21 && p.potential >= c.reputation - 3));
+  // Zahraničné kluby v hre (nemajú ligu CZ/SK)
+  const fits = Object.values(state.clubs).filter(
+    (c) => !c.leagueId && c.reputation <= o + 14 && (o >= c.reputation - 13 || (age <= 21 && p.potential >= c.reputation - 3)),
+  );
   return fits.length ? rng.pick(fits) : null;
 }
 
@@ -339,7 +342,7 @@ export function generateOffersForMe(state: GameState, rng: Rng): number {
     if (!fc) return 0;
     const factor = COUNTRY_PRICE_FACTOR[fc.country] ?? 0.4;
     const amount = roundMoney(Math.max(base, valueIn(state, target, factor) * rng.range(0.22, 0.4)));
-    offer = { id, playerId: target.id, fromClubId: null, foreignName: fc.name, foreignCountry: fc.country, amount, maxAmount: roundMoney(amount * rng.range(1.1, 1.35)), date: state.date, expires: addDays(state.date, 3), status: 'nova' };
+    offer = { id, playerId: target.id, fromClubId: fc.id, foreignName: fc.name, foreignCountry: fc.country, amount, maxAmount: roundMoney(amount * rng.range(1.1, 1.35)), date: state.date, expires: addDays(state.date, 3), status: 'nova' };
   } else {
     const o = ovr(target);
     const buyers = Object.values(state.clubs).filter(
@@ -373,7 +376,8 @@ export function acceptOffer(state: GameState, offerId: string, amount?: number):
     const wage = fairWage(p, state.date, state.season, leagueKey(state, o.fromClubId));
     executeTransfer(state, p, { clubId: o.fromClubId }, fee, wage, 3);
   } else {
-    const fc = FOREIGN_CLUBS.find((c) => c.name === o.foreignName) ?? { name: o.foreignName ?? 'zahraničný klub', country: o.foreignCountry ?? 'EN', reputation: 75 };
+    // Staršie ponuky zo zahraničia bez klubu v hre
+    const fc = { name: o.foreignName ?? 'zahraničný klub', country: o.foreignCountry ?? 'EN', reputation: 75 };
     executeTransfer(state, p, { foreign: fc }, fee, 0, 0);
   }
 }
@@ -438,6 +442,10 @@ function neededPosition(state: GameState, clubId: string): { pos: Position; bar:
 export function aiTransferDay(state: GameState, rng: Rng): void {
   if (!transferWindow(state.date)) return;
   const me = state.manager.clubId;
+  // Veľkosti kádrov raz za deň (nie pre každého hráča zvlášť)
+  const size = new Map<string, number>();
+  for (const p of Object.values(state.players)) if (p.clubId) size.set(p.clubId, (size.get(p.clubId) ?? 0) + 1);
+  const sizeOf = (id: string) => size.get(id) ?? 0;
   const clubs = Object.values(state.clubs).filter((c) => c.leagueId && c.id !== me);
 
   // Nákupy medzi klubmi
@@ -457,7 +465,7 @@ export function aiTransferDay(state: GameState, rng: Rng): void {
         ovr(p) > bar + 1 &&
         ovr(p) < buyer.reputation + 6 &&
         state.clubs[p.clubId].reputation <= buyer.reputation + 2 &&
-        clubPlayers(state, p.clubId).length > 20,
+        sizeOf(p.clubId) > 20,
     );
     const p = weighted(rng, candidates.map((c) => ({ item: c, w: c.listed ? 3 : 1 })));
     if (!p) continue;
@@ -480,13 +488,13 @@ export function aiTransferDay(state: GameState, rng: Rng): void {
 
   // Odchod hráča do zahraničia
   if (rng.chance(0.12)) {
-    const pool = Object.values(state.players).filter((p) => p.clubId && p.clubId !== me && clubPlayers(state, p.clubId).length > 20);
+    const pool = Object.values(state.players).filter((p) => p.clubId && p.clubId !== me && state.clubs[p.clubId].leagueId && sizeOf(p.clubId) > 20);
     const p = weighted(rng, pool.map((x) => ({ item: x, w: Math.max(0, ovr(x) - 60) ** 2 + (ageOn(x.birthDate, state.date) <= 21 ? Math.max(0, x.potential - 70) ** 2 : 0) })));
     if (p) {
       const fc = foreignBuyerFor(state, p, rng);
       if (fc) {
         const fee = roundMoney(Math.max(marketValue(p, state.date, state.season), valueIn(state, p, COUNTRY_PRICE_FACTOR[fc.country] ?? 0.4) * rng.range(0.22, 0.4)));
-        executeTransfer(state, p, { foreign: fc }, fee, 0, 0);
+        executeTransfer(state, p, { clubId: fc.id }, fee, fairWage(p, state.date, state.season, ''), rng.int(2, 4));
       }
     }
   }

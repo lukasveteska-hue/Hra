@@ -5,7 +5,7 @@ import { retirements, youthIntake } from './development';
 import { seasonStartSnapshot, squadValue } from './finance';
 import { generatePlayer, pickNationality } from './generator';
 import { expectedPosition, initialManagement, makeSponsorOffers } from './management';
-import { ageOn, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
+import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
 import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { standings } from './standings';
@@ -91,12 +91,12 @@ function pickSome(rng: Rng, list: string[], n: number): string[] {
 export function fillSquads(state: GameState, rng: Rng): void {
   const need: Record<Position, number> = { B: 3, O: 7, Z: 7, U: 5 };
   for (const c of Object.values(state.clubs)) {
-    if (!c.leagueId || c.id === state.manager.clubId) continue;
+    if (c.id === state.manager.clubId) continue;
     for (const pos of ['B', 'O', 'Z', 'U'] as Position[]) {
       const have = () => Object.values(state.players).filter((p) => p.clubId === c.id && p.position === pos).length;
       while (have() < need[pos]) {
         // Najprv voľný hráč primeranej kvality, inak nový hráč (z nižších súťaží)
-        const free = freeAgents(state)
+        const free = (c.leagueId ? freeAgents(state) : [])
           .filter((p) => p.position === pos && ovr(p) <= c.reputation + 3)
           .sort((a, b) => ovr(b) - ovr(a))[0];
         let p: Player;
@@ -111,13 +111,13 @@ export function fillSquads(state: GameState, rng: Rng): void {
             nationality: pickNationality(rng, c.country),
             season: state.season,
             clubId: c.id,
-            priceFactor: LEAGUE_PRICE_FACTOR[c.leagueId] ?? 0.2,
+            priceFactor: c.leagueId ? LEAGUE_PRICE_FACTOR[c.leagueId] ?? 0.2 : COUNTRY_PRICE_FACTOR[c.country] ?? 0.4,
           });
           state.players[p.id] = p;
         }
         p.clubId = c.id;
         p.contractUntil = state.season + rng.int(1, 3);
-        p.wage = fairWage(p, state.date, state.season, c.leagueId);
+        p.wage = fairWage(p, state.date, state.season, c.leagueId ?? '');
       }
     }
   }
@@ -126,7 +126,7 @@ export function fillSquads(state: GameState, rng: Rng): void {
 /** Počítačové kluby s veľkým kádrom uvoľnia najslabších hráčov (nie mladých) */
 function trimSquads(state: GameState): void {
   for (const c of Object.values(state.clubs)) {
-    if (!c.leagueId || c.id === state.manager.clubId) continue;
+    if (c.id === state.manager.clubId) continue;
     const squad = Object.values(state.players)
       .filter((p) => p.clubId === c.id)
       .sort((a, b) => ovr(a) - ovr(b));

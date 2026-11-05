@@ -10,7 +10,8 @@ describe('predvolená databáza', () => {
   it('je platná a vždy rovnaká', () => {
     expect(validateDatabase(db)).toEqual([]);
     expect(buildDefaultDatabase().players[0]).toEqual(db.players[0]);
-    expect(db.clubs).toHaveLength(60);
+    expect(db.clubs.filter((c) => c.leagueId)).toHaveLength(60);
+    expect(db.clubs.filter((c) => !c.leagueId).length).toBeGreaterThan(100);
   });
 });
 

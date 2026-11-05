@@ -3,6 +3,7 @@
 // Nová hra sa vždy vytvára z aktívnej databázy.
 
 import { LEAGUES } from '../data/clubs';
+import { EURO_CLUBS } from '../data/euroClubs';
 import { NAMES } from '../data/names';
 import { parseCsv, toCsv } from './csv';
 import { generateSquad, pickNationality, randomName } from './generator';
@@ -93,6 +94,7 @@ export const STAFF_ROLES: Record<StaffRole, string> = {
 
 /** Kluby, pre ktoré sa nepodarilo nájsť logo */
 const MISSING_LOGOS = new Set<string>();
+const NO_LOGO = new Set(['rijeka']);
 
 // ---------- Predvolená databáza ----------
 
@@ -157,6 +159,34 @@ export function buildDefaultDatabase(): Database {
         staff.push(generateStaff(rng, `z${n++}`, role, c.id, l.country, c.reputation, season));
       }
     }
+  }
+
+  // Zahraničné kluby (európske poháre) – zatiaľ s vygenerovanými hráčmi
+  for (const [id, name, shortName, abbr, country, reputation, c1, c2] of EURO_CLUBS) {
+    clubs.push({
+      id,
+      name,
+      shortName,
+      abbr,
+      country,
+      leagueId: null,
+      city: '',
+      stadium: '',
+      capacity: Math.round((15_000 + (reputation - 60) * 1_500) / 500) * 500,
+      colors: [c1, c2],
+      reputation,
+      balance: Math.round(5_000_000 * Math.exp(0.1 * (reputation - 60))),
+      reserveOf: null,
+      logo: NO_LOGO.has(id) ? null : `logos/${id}.png`,
+    });
+    const squad = generateSquad(rng, { clubId: id, country, reputation, season, priceFactor: 1, newId: () => `h${n++}` });
+    for (const p of squad) {
+      players.push({
+        id: p.id, firstName: p.firstName, lastName: p.lastName, nationality: p.nationality, birthDate: p.birthDate, position: p.position, clubId: id,
+        fyz: p.fyz, tech: p.tech, obr: p.obr, uto: p.uto, bra: p.bra, potential: p.potential, contractUntil: p.contractUntil, wage: null,
+      });
+    }
+    staff.push(generateStaff(rng, `z${n++}`, 'trener', id, country, reputation, season));
   }
 
   return { format: DB_FORMAT, version: DB_VERSION, name: 'Predvolená databáza 2026/27', season, leagues, clubs, players, staff };

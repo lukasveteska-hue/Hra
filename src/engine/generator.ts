@@ -32,16 +32,21 @@ function pickWeighted(rng: Rng, items: Array<[string, number]>): string {
 }
 
 /** Národnosť hráča pre klub z danej krajiny */
+/** Cudzinci v zahraničných kluboch */
+const INTERNATIONAL: Array<[string, number]> = [
+  ['BR', 10], ['FR', 8], ['ES', 6], ['PT', 6], ['NG', 5], ['GH', 4], ['HR', 4], ['RS', 4], ['NL', 4], ['DE', 4], ['DK', 3], ['SE', 2], ['PL', 3], ['CZ', 2], ['SK', 2], ['UA', 2], ['BE', 3], ['IT', 3], ['EN', 3],
+];
+/** Krajiny bez vlastného zoznamu mien */
+const NAME_FALLBACK: Record<string, string> = { SI: 'HR', BA: 'HR', ME: 'RS', MK: 'RS', AZ: 'TR', KZ: 'UA', FI: 'SE', IS: 'NO', SC: 'SC', WA: 'EN', IE: 'EN' };
+
 export function pickNationality(rng: Rng, clubCountry: string): string {
-  const homeShare = clubCountry === 'CZ' ? 0.72 : clubCountry === 'SK' ? 0.7 : 0.75;
-  if (rng.chance(homeShare) || !FOREIGN_MIX[clubCountry]) {
-    return NAMES[clubCountry] ? clubCountry : 'EN';
-  }
-  return pickWeighted(rng, FOREIGN_MIX[clubCountry]);
+  const homeShare = clubCountry === 'CZ' ? 0.72 : clubCountry === 'SK' ? 0.7 : 0.62;
+  if (rng.chance(homeShare)) return clubCountry;
+  return pickWeighted(rng, FOREIGN_MIX[clubCountry] ?? INTERNATIONAL.filter(([c]) => c !== clubCountry));
 }
 
 export function randomName(rng: Rng, nationality: string): { firstName: string; lastName: string } {
-  const pool = NAMES[nationality] ?? NAMES.EN;
+  const pool = NAMES[nationality] ?? NAMES[NAME_FALLBACK[nationality] ?? 'EN'] ?? NAMES.EN;
   return { firstName: rng.pick(pool.first), lastName: rng.pick(pool.last) };
 }
 

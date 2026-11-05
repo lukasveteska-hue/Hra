@@ -118,10 +118,11 @@ function OfferCard({ offer }: { offer: Offer }) {
     <div className="panel">
       <div className="row">
         {buyer ? <ClubBadge club={buyer} size={30} /> : <Flag code={offer.foreignCountry ?? ''} showCode={false} />}
+        {buyer && !buyer.leagueId && <Flag code={buyer.country} showCode={false} />}
         <div>
           <strong>{buyer ? buyer.name : offer.foreignName}</strong>
           <div className="muted" style={{ fontSize: 12 }}>
-            {buyer ? 'domáca liga' : 'zahraničie'} · platí do {formatDate(offer.expires)}
+            {buyer?.leagueId ? 'domáca liga' : 'zahraničie'} · platí do {formatDate(offer.expires)}
           </div>
         </div>
         <div className="spacer" />

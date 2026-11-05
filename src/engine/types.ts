@@ -1,3 +1,4 @@
+import type { CompState } from './cups';
 // Základné herné typy
 
 /** B = brankár, O = obranca, Z = záložník, U = útočník */
@@ -203,6 +204,8 @@ export interface Fixture {
   goals: Array<[number, string, string]>;
   /** Počet divákov */
   attendance?: number;
+  /** Víťaz po penaltách (pohárové zápasy) */
+  penaltyWinner?: string;
 }
 
 export interface PlayerSeasonStats {
@@ -236,6 +239,10 @@ export interface SeasonData {
   playoffsResolved?: Record<string, boolean>;
   /** Výsledky baráže a postupy/zostupy pripravené na novú sezónu */
   moves?: LeagueMove[];
+  /** Poháre a európske súťaže */
+  comps?: Record<string, CompState>;
+  /** Štatistiky hráčov v pohároch: súťaž → hráč → štatistiky */
+  compStats?: Record<string, Record<string, PlayerSeasonStats>>;
 }
 
 export interface LeagueMove {

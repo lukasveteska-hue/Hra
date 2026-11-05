@@ -2,7 +2,7 @@
 
 import type { Database, DbClub, DbPlayer } from './database';
 import { generatePlayer, generateSquad } from './generator';
-import { ageOn, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
+import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, ovr } from './ratings';
 import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { defaultTactic } from './tactics';
@@ -73,7 +73,8 @@ export function newGame(db: Database, opts: NewGameOptions): GameState {
   if (!clubs[opts.clubId]) throw new Error(`Neznámy klub: ${opts.clubId}`);
 
   const leagueKey = (clubId: string | null) => (clubId ? clubs[clubId]?.leagueId ?? '' : '');
-  const priceFactor = (clubId: string | null) => LEAGUE_PRICE_FACTOR[leagueKey(clubId)] ?? 0.3;
+  const priceFactor = (clubId: string | null) =>
+    LEAGUE_PRICE_FACTOR[leagueKey(clubId)] ?? (clubId && clubs[clubId] ? COUNTRY_PRICE_FACTOR[clubs[clubId].country] ?? 0.4 : 0.3);
 
   const players: Record<string, Player> = {};
   for (const dp of db.players) {

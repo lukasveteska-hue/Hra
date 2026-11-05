@@ -13,7 +13,7 @@ function refusalRate(s: GameState, players: Player[]) {
 describe('ochota hráčov prestúpiť do slabého klubu', () => {
   const s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId: 'malzenice', seed: 9 });
   const avg = teamAverage(s, 'malzenice');
-  const others = Object.values(s.players).filter((p) => p.clubId && p.clubId !== 'malzenice');
+  const others = Object.values(s.players).filter((p) => p.clubId && p.clubId !== 'malzenice' && s.clubs[p.clubId].leagueId);
   const age = (p: Player) => ageOn(p.birthDate, s.date);
 
   it('správanie podľa veku a kvality', () => {
