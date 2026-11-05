@@ -19,6 +19,7 @@ export const TX_NAMES: Record<TxType, string> = {
   pozicka: 'Pôžičky',
   splatka: 'Splátky pôžičiek',
   stavba: 'Štadión a zariadenia',
+  odstupne: 'Odstupné hráčom',
   ine: 'Prevádzka klubu',
 };
 

@@ -361,6 +361,97 @@ export function generateOffersForMe(state: GameState, rng: Rng): number {
   return 1;
 }
 
+/**
+ * Hráči na prestupovej listine: každý deň v prestupovom období má každý z nich šancu na ponuku,
+ * aj od slabších klubov. Pri nízkej cene (aj 0 €) sa kupec nájde skoro vždy.
+ */
+export function generateListedOffers(state: GameState, rng: Rng): number {
+  if (!transferWindow(state.date)) return 0;
+  const me = state.manager.clubId;
+  let count = 0;
+  const listed = clubPlayers(state, me).filter((x) => x.listed);
+  if (!listed.length) return 0;
+  const sizes = new Map<string, number>();
+  for (const x of Object.values(state.players)) if (x.clubId) sizes.set(x.clubId, (sizes.get(x.clubId) ?? 0) + 1);
+  for (const p of listed) {
+    if (state.offers.some((o) => o.playerId === p.id && o.status === 'nova')) continue;
+    const value = marketValue(p, state.date, state.season);
+    const asking = p.askingPrice ?? value;
+    const cheap = asking <= value * 0.6;
+    if (!rng.chance(cheap ? 0.22 : asking <= value * 1.1 ? 0.12 : 0.05)) continue;
+    const o = ovr(p);
+    const size = (id: string) => sizes.get(id) ?? 0;
+    // Kupec: klub podobnej alebo nižšej úrovne, ktorý má miesto v kádri
+    let buyers = Object.values(state.clubs).filter(
+      (c) => c.id !== me && c.leagueId && !c.reserveOf && c.reputation >= o - 14 && c.reputation <= o + 10 && size(c.id) < 32,
+    );
+    if (!buyers.length) buyers = Object.values(state.clubs).filter((c) => c.id !== me && c.leagueId && !c.reserveOf && size(c.id) < 34);
+    if (!buyers.length) continue;
+    const buyer = rng.pick(buyers);
+    let amount = asking <= value ? asking * rng.range(0.9, 1.1) : value * rng.range(0.85, 1.05);
+    if (asking === 0) amount = rng.chance(0.5) ? 0 : value * rng.range(0.05, 0.3);
+    amount = amount < 5_000 ? 0 : roundMoney(Math.min(amount, Math.max(0, buyer.balance * 0.8)));
+    const offer: Offer = {
+      id: `o${state.nextId++}`,
+      playerId: p.id,
+      fromClubId: buyer.id,
+      amount,
+      maxAmount: roundMoney(Math.max(amount * rng.range(1.05, 1.25), Math.min(asking, buyer.balance * 0.8))),
+      date: state.date,
+      expires: addDays(state.date, 4),
+      status: 'nova',
+    };
+    state.offers.push(offer);
+    state.news.push({
+      date: state.date,
+      text: `Ponuka: ${buyer.name} má záujem o hráča ${p.firstName} ${p.lastName} ${amount ? `za ${amount.toLocaleString('sk-SK')} €` : 'zadarmo (prevezme zmluvu)'}.`,
+    });
+    count++;
+  }
+  return count;
+}
+
+/** Odstupné pri ukončení zmluvy: polovica zostávajúcich platov, aspoň jeden mesačný plat */
+export function severanceFor(state: GameState, p: Player): number {
+  const end = Date.parse(`${p.contractUntil}-06-30`);
+  const months = Math.max(0, Math.round((end - Date.parse(state.date)) / (30.4 * 86_400_000)));
+  return roundMoney(Math.max(p.wage, p.wage * months * 0.5), 1_000);
+}
+
+/** Ukončenie zmluvy dohodou – hráč odchádza ako voľný hráč */
+export function releasePlayer(state: GameState, playerId: string): string | null {
+  const me = state.manager.clubId;
+  const p = state.players[playerId];
+  if (!p || p.clubId !== me) return 'Hráč nie je v tvojom klube.';
+  if (clubPlayers(state, me).length <= 15) return 'V kádri musí ostať aspoň 15 hráčov.';
+  const fee = severanceFor(state, p);
+  addMoney(state, me, 'odstupne', -fee, `Odstupné: ${p.firstName} ${p.lastName} (ukončenie zmluvy)`);
+  state.transfers.push({
+    date: state.date,
+    playerId: p.id,
+    playerName: `${p.firstName} ${p.lastName}`,
+    position: p.position,
+    age: ageOn(p.birthDate, state.date),
+    fromClubId: me,
+    toClubId: null,
+    toName: 'voľný hráč (ukončenie zmluvy)',
+    fee: 0,
+  });
+  p.clubId = null;
+  p.wage = 0;
+  p.contractUntil = state.season;
+  p.listed = false;
+  p.askingPrice = null;
+  state.tactic = {
+    ...state.tactic,
+    lineup: state.tactic.lineup.filter((id) => id !== p.id),
+    bench: state.tactic.bench.filter((id) => id !== p.id),
+  };
+  for (const o of state.offers) if (o.playerId === p.id && o.status === 'nova') o.status = 'vyprsala';
+  state.news.push({ date: state.date, text: `S hráčom ${p.firstName} ${p.lastName} sme ukončili zmluvu dohodou (odstupné ${fee.toLocaleString('sk-SK')} €).` });
+  return null;
+}
+
 export function expireOffers(state: GameState): void {
   for (const o of state.offers) if (o.status === 'nova' && o.expires < state.date) o.status = 'vyprsala';
 }

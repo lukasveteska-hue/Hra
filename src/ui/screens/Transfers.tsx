@@ -128,9 +128,9 @@ function OfferCard({ offer }: { offer: Offer }) {
         </div>
         <div className="spacer" />
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{money(offer.amount)}</div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{offer.amount ? money(offer.amount) : 'zadarmo'}</div>
           <div className="muted" style={{ fontSize: 12 }}>
-            hodnota {money(value)} ({Math.round((offer.amount / value) * 100)} %)
+            hodnota {money(value)} ({Math.round((offer.amount / Math.max(1, value)) * 100)} %)
           </div>
         </div>
       </div>

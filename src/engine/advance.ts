@@ -13,7 +13,7 @@ import { monthlyDevelopment } from './development';
 import { createPlayoffsIfReady, playoffsDone, resolvePlayoffsIfReady } from './playoffs';
 import { competitionsDone, progressCompetitions } from './cups';
 import { applyFriendly, FRIENDLY } from './friendlies';
-import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
+import { aiTransferDay, driftPriceFactor, expireOffers, generateListedOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
 
@@ -182,7 +182,7 @@ function endDay(state: GameState, rng: Rng): number {
   expireOffers(state);
   finishProjects(state);
   aiTransferDay(state, rng);
-  const newOffers = generateOffersForMe(state, rng);
+  const newOffers = generateOffersForMe(state, rng) + generateListedOffers(state, rng);
   for (const id of Object.keys(state.leagues)) {
     if (createSplitIfReady(state, id)) {
       state.news.push({ date: state.date, text: `${state.leagues[id].name}: základná časť skončila, začína nadstavba.` });

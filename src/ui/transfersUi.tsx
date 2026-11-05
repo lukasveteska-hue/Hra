@@ -13,6 +13,8 @@ import {
   playerDemand,
   respondToBid,
   type ContractDemand,
+  releasePlayer,
+  severanceFor,
 } from '../engine/transfers';
 import type { GameState, Player } from '../engine/types';
 import { useGame } from './GameContext';
@@ -29,7 +31,7 @@ function withRng(state: GameState, fn: (s: GameState, rng: Rng) => void): GameSt
 /** Tlačidlá v detaile hráča */
 export function PlayerActions({ player }: { player: Player }) {
   const { state } = useGame();
-  const [mode, setMode] = useState<'none' | 'bid' | 'contract' | 'renew' | 'list'>('none');
+  const [mode, setMode] = useState<'none' | 'bid' | 'contract' | 'renew' | 'list' | 'release'>('none');
   const me = state.manager.clubId;
   const mine = player.clubId === me;
   const window = transferWindow(state.date);
@@ -44,6 +46,9 @@ export function PlayerActions({ player }: { player: Player }) {
             <>
               <button onClick={() => setMode('list')}>{player.listed ? 'Upraviť / stiahnuť z listiny' : 'Dať na prestupovú listinu'}</button>
               <button onClick={() => setMode('renew')}>Predĺžiť zmluvu</button>
+              <button className="danger" onClick={() => setMode('release')}>
+                Ukončiť zmluvu
+              </button>
             </>
           )}
           {!mine && player.clubId && (
@@ -63,6 +68,7 @@ export function PlayerActions({ player }: { player: Player }) {
       {mode === 'contract' && <ContractForm player={player} fee={0} renewal={false} onDone={() => setMode('none')} />}
       {mode === 'renew' && <ContractForm player={player} fee={0} renewal onDone={() => setMode('none')} />}
       {mode === 'list' && <ListForm player={player} onDone={() => setMode('none')} />}
+      {mode === 'release' && <ReleaseForm player={player} onDone={() => setMode('none')} />}
     </div>
   );
 }
@@ -242,6 +248,44 @@ function ContractForm({ player, fee, renewal, onDone }: { player: Player; fee: n
   );
 }
 
+function ReleaseForm({ player, onDone }: { player: Player; onDone: () => void }) {
+  const { state, setState } = useGame();
+  const fee = severanceFor(state, player);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const balance = state.clubs[state.manager.clubId].balance;
+  const confirm = () => {
+    const s = cloneState(state);
+    const err = releasePlayer(s, player.id);
+    if (err) {
+      setMsg({ ok: false, text: err });
+      return;
+    }
+    setState(s);
+    setMsg({ ok: true, text: `Zmluva s hráčom ${player.lastName} je ukončená. Odchádza ako voľný hráč.` });
+  };
+  return (
+    <>
+      <h3>Ukončenie zmluvy dohodou</h3>
+      {!msg?.ok && (
+        <p style={{ marginTop: 0 }}>
+          {player.lastName} má zmluvu do 30. 6. {player.contractUntil} a plat {money(player.wage)} mesačne. Za ukončenie zmluvy mu zaplatíš odstupné{' '}
+          <strong>{money(fee)}</strong> (polovica zostávajúcich platov). Na účte máš {money(balance)}.
+        </p>
+      )}
+      {msg && <p className={msg.ok ? 'good' : 'bad'}>{msg.text}</p>}
+      <div className="row">
+        <button onClick={onDone}>{msg?.ok ? 'Zavrieť' : 'Zrušiť'}</button>
+        <div className="spacer" />
+        {!msg?.ok && (
+          <button className="danger" onClick={confirm}>
+            Ukončiť zmluvu za {money(fee)}
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
 function ListForm({ player, onDone }: { player: Player; onDone: () => void }) {
   const { state, setState } = useGame();
   const value = marketValue(player, state.date, state.season);
@@ -258,7 +302,8 @@ function ListForm({ player, onDone }: { player: Player; onDone: () => void }) {
     <>
       <h3>Prestupová listina</h3>
       <p className="muted" style={{ marginTop: 0 }}>
-        Trhová hodnota {money(value)}. Hráči na listine dostávajú viac ponúk.
+        Trhová hodnota {money(value)}. Hráči na listine dostávajú ponuky počas prestupového obdobia – čím nižšia cena, tým skôr (pri 0 € si
+        hráča niekto zoberie zadarmo).
       </p>
       <label className="field">
         <span>Požadovaná cena</span>

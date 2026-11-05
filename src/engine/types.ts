@@ -299,6 +299,7 @@ export type TxType =
   | 'pozicka'
   | 'splatka'
   | 'stavba'
+  | 'odstupne'
   | 'ine';
 
 export interface Transaction {
