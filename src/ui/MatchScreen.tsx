@@ -5,11 +5,11 @@ import { createSim, finishMyMatch } from '../engine/advance';
 import { MAX_SUBS, type MatchResult, type MatchSim } from '../engine/match';
 import { ovr } from '../engine/ratings';
 import { Rng } from '../engine/rng';
-import { FORMATIONS, STYLE_NAMES } from '../engine/tactics';
+import { FORMATIONS, slotRating, STYLE_NAMES } from '../engine/tactics';
 import type { Fixture, Style } from '../engine/types';
 import { useGame } from './GameContext';
 import { weatherFor, weatherLabel } from '../engine/weather';
-import { ClubBadge, Modal, Pos } from './common';
+import { Attr, ClubBadge, Modal, Pos, POS_NAME } from './common';
 import { AttackSlider, TacticsEditor } from './TacticsEditor';
 
 const MATCH_MS = 60_000;
@@ -310,12 +310,24 @@ function Scoreboard({
 function SubDialog({ sim, side, onClose }: { sim: MatchSim; side: 0 | 1; onClose: () => void }) {
   const { state } = useGame();
   const s = sim.sides[side];
-  const [outId, setOut] = useState(s.onPitch[0]?.id ?? '');
   const bench = s.bench.filter((id) => !sim.hasAppeared(id));
-  const [inId, setIn] = useState(bench[0] ?? '');
+  const [outId, setOut] = useState<string | null>(null);
+  const [inId, setIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const outSlot = s.onPitch.find((x) => x.id === outId)?.slot;
+  const en = (id: string) => Math.round(sim.energy[id] ?? state.players[id].energy);
+  const enClass = (v: number) => (v < 50 ? 'bad' : v < 70 ? 'mid' : 'muted');
+
+  // Na lavičke navrchu hráči z pozície odchádzajúceho, potom podľa hodnotenia na jeho mieste
+  const benchSorted = [...bench].sort((a, b) => {
+    const pa = state.players[a];
+    const pb = state.players[b];
+    if (!outSlot) return ovr(pb) - ovr(pa);
+    return Number(pb.position === outSlot) - Number(pa.position === outSlot) || slotRating(pb, outSlot) - slotRating(pa, outSlot);
+  });
 
   const confirm = () => {
+    if (!outId || !inId) return;
     const err = sim.substitute(side, outId, inId);
     if (err) setError(err);
     else onClose();
@@ -323,42 +335,79 @@ function SubDialog({ sim, side, onClose }: { sim: MatchSim; side: 0 | 1; onClose
 
   return (
     <Modal onClose={onClose}>
-      <h2>Striedanie</h2>
-      <p className="muted" style={{ marginTop: -6 }}>
-        Zápas je počas striedania pozastavený. Zostáva {MAX_SUBS - s.subsUsed} striedaní.
-      </p>
-      <label className="field">
-        <span>Odchádza</span>
-        <select value={outId} onChange={(e) => setOut(e.target.value)}>
-          {s.onPitch.map((x) => {
-            const p = state.players[x.id];
-            return (
-              <option key={x.id} value={x.id}>
-                {x.slot} · {p.lastName} · energia {Math.round(sim.energy[x.id] ?? p.energy)} %
-              </option>
-            );
-          })}
-        </select>
-      </label>
-      <label className="field">
-        <span>Prichádza</span>
-        <select value={inId} onChange={(e) => setIn(e.target.value)}>
-          {bench.map((id) => {
-            const p = state.players[id];
-            return (
-              <option key={id} value={id}>
-                {p.position === 'U' ? 'Ú' : p.position} · {p.lastName} · {Math.round(ovr(p))}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+      <div className="modal-head">
+        <div>
+          <h2 style={{ margin: 0 }}>Striedanie</h2>
+          <div className="muted" style={{ fontSize: 13 }}>
+            Zápas je pozastavený · zostáva {MAX_SUBS - s.subsUsed} striedaní
+          </div>
+        </div>
+        <div className="spacer" />
+        <button onClick={onClose} aria-label="Zavrieť">
+          ✕
+        </button>
+      </div>
+
+      <h3>Odchádza</h3>
+      {s.onPitch.map((x) => {
+        const p = state.players[x.id];
+        const e = en(x.id);
+        return (
+          <button
+            key={x.id}
+            className={`pick-row sub-row${outId === x.id ? ' selected' : ''}`}
+            onClick={() => {
+              setOut(x.id);
+              setError(null);
+            }}
+          >
+            <Pos p={x.slot} />
+            <span className="pick-name">
+              {p.lastName} {p.firstName.charAt(0)}.
+            </span>
+            <span className="num">
+              <Attr v={slotRating(p, x.slot)} />
+            </span>
+            <span className={`num ${enClass(e)}`}>{e} %</span>
+          </button>
+        );
+      })}
+
+      <h3 style={{ marginTop: 14 }}>Prichádza{outSlot ? ` na miesto: ${POS_NAME[outSlot].toLowerCase()}` : ''}</h3>
+      {benchSorted.length ? (
+        benchSorted.map((id) => {
+          const p = state.players[id];
+          const e = en(id);
+          return (
+            <button
+              key={id}
+              className={`pick-row sub-row${inId === id ? ' selected' : ''}${outSlot && p.position === outSlot ? ' same' : ''}`}
+              onClick={() => {
+                setIn(id);
+                setError(null);
+              }}
+            >
+              <Pos p={p.position} />
+              <span className="pick-name">
+                {p.lastName} {p.firstName.charAt(0)}.
+              </span>
+              <span className="num">
+                <Attr v={outSlot ? slotRating(p, outSlot) : ovr(p)} />
+              </span>
+              <span className={`num ${enClass(e)}`}>{e} %</span>
+            </button>
+          );
+        })
+      ) : (
+        <p className="muted">Na lavičke nie je nikto voľný.</p>
+      )}
+
       {error && <p className="bad">{error}</p>}
-      <div className="row">
+      <div className="row sub-actions">
         <button onClick={onClose}>Zrušiť</button>
         <div className="spacer" />
         <button className="primary" disabled={!outId || !inId} onClick={confirm}>
-          Vystriedať
+          {outId && inId ? `🔄 ${state.players[outId].lastName} ➜ ${state.players[inId].lastName}` : 'Vystriedať'}
         </button>
       </div>
     </Modal>

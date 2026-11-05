@@ -1159,3 +1159,20 @@ table.data th.center {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Striedanie počas zápasu */
+.pick-row.sub-row {
+  grid-template-columns: 30px 1fr 40px 48px;
+}
+.pick-row.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel-2, var(--panel)));
+}
+.sub-actions {
+  position: sticky;
+  bottom: -16px;
+  background: var(--panel);
+  margin: 10px -16px -16px;
+  padding: 10px 16px 16px;
+  border-top: 1px solid var(--border);
+}
