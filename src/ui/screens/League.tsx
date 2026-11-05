@@ -9,16 +9,20 @@ import { seasonLabel } from '../../engine/game';
 import { LineChart, SERIES } from '../charts';
 import { money } from '../common';
 import { ClubBadge, Flag } from '../common';
+import { COMP_NAMES, COMP_ORDER, COMP_SHORT, isCompetition, STAGE_NAMES, type CompId } from '../../engine/cups';
+import { CupView } from './Cups';
 
 type Tab = 'table' | 'rounds' | 'scorers' | 'playoff' | 'history';
 
 export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
   const { state } = useGame();
   const myLeague = state.clubs[state.manager.clubId].leagueId ?? 'CZ1';
-  const [leagueId, setLeagueId] = useState(myLeague);
+  const [leagueId, setLeagueId] = useState<string>(myLeague);
   const [tab, setTab] = useState<Tab>('table');
-  const poId = `PO-${state.leagues[leagueId].country}`;
+  const comp = isCompetition(leagueId) ? leagueId : null;
+  const poId = comp ? '' : `PO-${state.leagues[leagueId].country}`;
   const playoff = state.seasonData.fixtures.filter((f) => f.leagueId === poId);
+  const COMP_ICON: Record<CompId, string> = { LM: '⭐', EL: '🟠', KL: '🟢', 'POHAR-CZ': '🇨🇿🏆', 'POHAR-SK': '🇸🇰🏆' };
 
   return (
     <>
@@ -30,6 +34,24 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
           </button>
         ))}
       </div>
+      <div className="tabs">
+        {COMP_ORDER.filter((c) => state.seasonData.comps?.[c]).map((c) => (
+          <button key={c} className={c === leagueId ? 'active' : ''} onClick={() => setLeagueId(c)}>
+            {COMP_ICON[c]} {COMP_NAMES[c]}
+          </button>
+        ))}
+      </div>
+      {comp ? (
+        <CupView key={comp} comp={comp} />
+      ) : (
+        LeagueTabs()
+      )}
+    </>
+  );
+
+  function LeagueTabs() {
+    return (
+      <>
       <div className="tabs">
         <button className={tab === 'table' ? 'active' : ''} onClick={() => setTab('table')}>
           Tabuľka
@@ -61,8 +83,9 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
         </>
       )}
       {tab === 'history' && <HistoryView />}
-    </>
-  );
+      </>
+    );
+  }
 }
 
 export function LeagueTable({ leagueId, openClub }: { leagueId: string; openClub: (id: string) => void }) {
@@ -186,6 +209,11 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
             return (
               <tr key={f.id} className={mine ? 'highlight' : undefined}>
                 {showDate && <td className="muted">{formatDateShort(f.date)}</td>}
+                {showDate && (
+                  <td className="muted" style={{ fontSize: 11 }}>
+                    {isCompetition(f.leagueId) ? COMP_SHORT[f.leagueId] : f.leagueId.startsWith('PO-') ? 'Baráž' : 'Liga'}
+                  </td>
+                )}
                 <td style={{ textAlign: 'right' }}>
                   <span className="club-cell">
                     {h.shortName}
@@ -194,6 +222,7 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
                 </td>
                 <td className="center" style={{ width: 60 }}>
                   <strong>{f.played ? `${f.homeGoals}:${f.awayGoals}` : '–:–'}</strong>
+                  {f.penaltyWinner && <div className="muted" style={{ fontSize: 10 }}>pen. {state.clubs[f.penaltyWinner].shortName}</div>}
                 </td>
                 <td>
                   <span className="club-cell">
@@ -201,7 +230,7 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
                     {a.shortName}
                   </span>
                 </td>
-                <td className="muted" style={{ whiteSpace: 'normal', fontSize: 12 }}>
+                <td className="muted" style={{ whiteSpace: 'normal', fontSize: 12, minWidth: 200 }}>
                   {f.goals.map(([m, pid]) => `${state.players[pid]?.lastName ?? '?'} ${m}'`).join(', ')}
                 </td>
               </tr>
@@ -274,7 +303,8 @@ function HistoryView() {
   const { state } = useGame();
   const h = state.history;
   if (!h.length) return <p className="muted">História sa začne zapisovať po prvej odohratej sezóne.</p>;
-  const leagueIds = Object.keys(state.leagues);
+  const leagueIds = [...Object.keys(state.leagues), ...COMP_ORDER.filter((c) => h.some((x) => x.champions[c]))];
+  const reachedText = (r: string) => (r === 'vitaz' ? 'víťaz 🏆' : STAGE_NAMES[r] ?? r);
   return (
     <>
       <div className="panel">
@@ -296,6 +326,7 @@ function HistoryView() {
                 <th className="num">Účet na konci</th>
                 <th className="num">Hodnota kádra</th>
                 <th>Najdrahší predaj</th>
+                <th>Poháre</th>
               </tr>
             </thead>
             <tbody>
@@ -332,6 +363,11 @@ function HistoryView() {
                     <td className="num">{money(x.balanceEnd)}</td>
                     <td className="num">{money(x.squadValueEnd)}</td>
                     <td>{x.bestSale ? `${x.bestSale.name} (${money(x.bestSale.fee)})` : '–'}</td>
+                    <td>
+                      {Object.entries(x.cupResults ?? {})
+                        .map(([c, r]) => `${COMP_NAMES[c as CompId]}: ${reachedText(r)}`)
+                        .join(' · ') || '–'}
+                    </td>
                   </tr>
                 );
               })}
@@ -361,7 +397,7 @@ function HistoryView() {
               <tr>
                 <th>Sezóna</th>
                 {leagueIds.map((id) => (
-                  <th key={id}>{state.leagues[id].name}</th>
+                  <th key={id}>{state.leagues[id]?.name ?? COMP_NAMES[id as CompId]}</th>
                 ))}
               </tr>
             </thead>

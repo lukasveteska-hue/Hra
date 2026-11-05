@@ -1,31 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { advance, createSim, finishMyMatch, myFixtureToday, seasonFinished } from './advance';
+import { seasonFinished } from './advance';
+import { playToEnd } from './testUtil';
 import { buildDefaultDatabase } from './database';
 import { newGame } from './game';
 import { startNewSeason, changeClub } from './newSeason';
 import { ageOn } from './ratings';
-import { Rng } from './rng';
-import type { GameState } from './types';
 
-function playToEnd(s: GameState): GameState {
-  for (let i = 0; i < 700 && !seasonFinished(s); i++) {
-    const f = myFixtureToday(s);
-    if (f) {
-      const rng = new Rng(s.rngState);
-      const sim = createSim(s, f, rng);
-      sim.runToEnd();
-      s = finishMyMatch(s, [{ fixtureId: f.id, result: sim.result() }], rng.state);
-    } else s = advance(s, 'match');
-  }
-  return s;
-}
 
 describe('viac sezón za sebou', () => {
-  it('liga, kádre a hráči ostávajú v poriadku', () => {
+  it('liga, kádre a hráči ostávajú v poriadku', async () => {
     let s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId: 'trencin', seed: 31 });
     const startPlayers = Object.keys(s.players).length;
     for (let season = 0; season < 3; season++) {
-      s = playToEnd(s);
+      s = await playToEnd(s);
       expect(seasonFinished(s)).toBe(true);
       const { state, report } = startNewSeason(s);
       console.log(

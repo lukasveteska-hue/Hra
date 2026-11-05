@@ -235,6 +235,15 @@ Cieľ: **trh musí byť živý**, žiadne hluché obdobia.
 
 ---
 
+## 11b. Poháre
+
+- **MOL Cup (CZ) a Slovnaft Cup (SK):** 1. a 2. liga bez B-tímov, jeden zápas, pri remíze penalty; najsilnejšie kluby majú v 1. kole voľno; klub z nižšej ligy hrá doma. Víťaz ide do Európskej ligy.
+- **Liga majstrov, Európska liga, Konferenčná liga:** kvalifikácia (2. a 3. predkolo, play-off) na dva zápasy, ligová fáza 36 klubov × 8 zápasov, 1.–8. priamo do osemfinále, 9.–24. play-off, potom osemfinále, štvrťfinále, semifinále (dva zápasy) a finále.
+- Vyradení v kvalifikácii LM pokračujú v EL, vyradení v EL v KL.
+- **Miesta:** CZ – majster LM play-off, 2. LM 2. predkolo, víťaz pohára EL play-off, 3. EL 3. predkolo, 4. KL 2. predkolo. SK – majster LM 2. predkolo, víťaz pohára EL 3. predkolo, 2. a 3. KL 2. predkolo. Prvá sezóna podľa sily klubov.
+- **Peniaze:** LM ligová fáza 12 mil. € + 1,5 mil. za výhru, EL 4 mil. €, KL 3 mil. €, ďalšie odmeny za postupy; vyššia návštevnosť a cena lístkov na európskych zápasoch.
+- **115 zahraničných klubov** s logami; zatiaľ vygenerovaní hráči (reálne súpisky hlavných klubov sa doplnia cez databázu). Hráči predaní do zahraničia hrajú za tieto kluby.
+
 ## 12. Štatistiky a história
 
 - Tabuľky strelcov a asistentov, priemerné známky.
@@ -282,5 +291,5 @@ Na konci sezóny slávnostná obrazovka s kartami:
 3. ✅ Prestupový trh a zmluvy (+ základné financie a vyhodnotenie sezóny)
 4. ✅ Financie (vstupné, sponzori, pôžičky, štadión, zariadenia) + počasie
 5. ✅ Vývoj hráčov, zariadenia, mládež, prechod sezóny, baráž, hodnotenie vedenia, história
-6. Domáci pohár a európske poháre
+6. ✅ Domáci pohár a európske poháre (zahraničné kluby zatiaľ s vygenerovanými hráčmi)
 7. Vedenie klubu, štatistiky, história

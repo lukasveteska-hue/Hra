@@ -228,7 +228,7 @@ function createStage(state: GameState, cs: CompState, idx: number, rng: Rng): vo
     return;
   }
 
-  let pairs: Array<[string, string]> = [];
+  const pairs: Array<[string, string]> = [];
   if (euro && ['q2', 'q3', 'po'].includes(def.id)) {
     // Kvalifikácia: CZ/SK kluby proti zahraničným súperom
     const dom = shuffle(rng, teams.filter((t) => isDomestic(state, t)));

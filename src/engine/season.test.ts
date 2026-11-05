@@ -1,27 +1,16 @@
-import { describe, expect, it } from 'vitest';
-import { advance, createSim, finishMyMatch, myFixtureToday, seasonFinished } from './advance';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { seasonFinished } from './advance';
+import { playToEnd } from './testUtil';
 import { roundDates } from './calendar';
 import { buildDefaultDatabase } from './database';
 import { newGame } from './game';
-import { Rng } from './rng';
 import { roundRobin } from './schedule';
 import { standings } from './standings';
 import type { GameState } from './types';
 
-function playSeason(clubId: string, seed: number): GameState {
-  let s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId, seed });
-  for (let i = 0; i < 500 && !seasonFinished(s); i++) {
-    const f = myFixtureToday(s);
-    if (f) {
-      const rng = new Rng(s.rngState);
-      const sim = createSim(s, f, rng);
-      sim.runToEnd();
-      s = finishMyMatch(s, [{ fixtureId: f.id, result: sim.result() }], rng.state);
-    } else {
-      s = advance(s, 'match');
-    }
-  }
-  return s;
+async function playSeason(clubId: string, seed: number): Promise<GameState> {
+  const s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId, seed });
+  return playToEnd(s);
 }
 
 describe('rozpis', () => {
@@ -44,7 +33,10 @@ describe('rozpis', () => {
 });
 
 describe('celá sezóna', () => {
-  const s = playSeason('zlin', 7);
+  let s: GameState;
+  beforeAll(async () => {
+    s = await playSeason('zlin', 7);
+  }, 600_000);
 
   it('všetky zápasy sú odohrané a nadstavby vytvorené', () => {
     expect(seasonFinished(s)).toBe(true);
@@ -86,7 +78,10 @@ describe('celá sezóna', () => {
 });
 
 describe('prestupy a financie počas sezóny', () => {
-  const s = playSeason('zlin', 11);
+  let s: GameState;
+  beforeAll(async () => {
+    s = await playSeason('zlin', 11);
+  }, 600_000);
 
   it('počítačové kluby prestupujú a prichádzajú ponuky', () => {
     console.log('prestupov', s.transfers.length, 'do zahraničia', s.transfers.filter((t) => t.toName).length, 'ponúk na mňa', s.offers.length);
@@ -110,7 +105,10 @@ describe('prestupy a financie počas sezóny', () => {
 });
 
 describe('baráž', () => {
-  const s = playSeason('zlin', 13);
+  let s: GameState;
+  beforeAll(async () => {
+    s = await playSeason('zlin', 13);
+  }, 600_000);
   it('sa odohrá a určí postupy a zostupy', () => {
     const po = s.seasonData.fixtures.filter((f) => f.leagueId.startsWith('PO-'));
     expect(po).toHaveLength(6);

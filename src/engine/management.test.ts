@@ -1,26 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { advance, createSim, finishMyMatch, myFixtureToday } from './advance';
+import { playUntil } from './testUtil';
 import { buildDefaultDatabase } from './database';
 import { newGame } from './game';
 import { chooseSponsor, expandStadium, loanLimit, loansOutstanding, takeLoan, upgradeFacility } from './management';
 import { weatherFor, weatherHarshness, weatherPlayerFactor } from './weather';
 
-import { Rng } from './rng';
 import type { GameState } from './types';
 
-/** Posúva čas a odohráva moje zápasy, kým nepríde daný dátum */
-function until(s: GameState, date: string): GameState {
-  for (let i = 0; i < 500 && s.date < date; i++) {
-    const f = myFixtureToday(s);
-    if (f) {
-      const rng = new Rng(s.rngState);
-      const sim = createSim(s, f, rng);
-      sim.runToEnd();
-      s = finishMyMatch(s, [{ fixtureId: f.id, result: sim.result() }], rng.state);
-    } else s = advance(s, 'week');
-  }
-  return s;
-}
+const until = (s: GameState, date: string) => playUntil(s, (x) => x.date >= date);
 
 const fresh = () => newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId: 'malzenice', seed: 3 });
 
@@ -36,10 +23,10 @@ describe('banka', () => {
     expect(takeLoan(s, limit, 2)).not.toBeNull();
   });
 
-  it('splátky znižujú dlh každý mesiac', () => {
+  it('splátky znižujú dlh každý mesiac', async () => {
     let s = fresh();
     takeLoan(s, 600_000, 1);
-    s = until(s, '2026-08-02'); // prejdú 2 splátky (1. 7. a 1. 8.)
+    s = await until(s, '2026-08-02'); // prejdú 2 splátky (1. 7. a 1. 8.)
     const out = loansOutstanding(s);
     expect(out).toBeLessThan(600_000);
     expect(out).toBeGreaterThan(400_000);
@@ -48,14 +35,14 @@ describe('banka', () => {
 });
 
 describe('štadión a zariadenia', () => {
-  it('rozšírenie štadióna sa dokončí', () => {
+  it('rozšírenie štadióna sa dokončí', async () => {
     let s = fresh();
     takeLoan(s, 1_500_000, 3);
     const cap = s.clubs.malzenice.capacity;
     expect(expandStadium(s, 1000)).toBeNull();
     expect(upgradeFacility(s, 'trening')).toBeNull();
     const level = s.management.training;
-    s = until(s, '2026-09-30');
+    s = await until(s, '2026-09-30');
     expect(s.clubs.malzenice.capacity).toBe(cap + 1000);
     expect(s.management.training).toBe(level + 1);
   }, 60_000);

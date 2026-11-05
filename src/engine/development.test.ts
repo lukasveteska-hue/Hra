@@ -1,23 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { advance, createSim, finishMyMatch, myFixtureToday, seasonFinished } from './advance';
+import { playToEnd } from './testUtil';
 import { buildDefaultDatabase } from './database';
 import { newGame } from './game';
 import { ageOn, ovr } from './ratings';
-import { Rng } from './rng';
 
 describe('vývoj hráčov počas sezóny', () => {
-  it('mladí rastú, starší klesajú', () => {
+  it('mladí rastú, starší klesajú', async () => {
     let s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId: 'zlin', seed: 21 });
     const start = new Map(Object.values(s.players).map((p) => [p.id, { o: ovr(p), age: ageOn(p.birthDate, s.date), pot: p.potential }]));
-    for (let i = 0; i < 600 && !seasonFinished(s); i++) {
-      const f = myFixtureToday(s);
-      if (f) {
-        const rng = new Rng(s.rngState);
-        const sim = createSim(s, f, rng);
-        sim.runToEnd();
-        s = finishMyMatch(s, [{ fixtureId: f.id, result: sim.result() }], rng.state);
-      } else s = advance(s, 'match');
-    }
+    s = await playToEnd(s);
     const groups: Record<string, number[]> = { '17-20': [], '21-24': [], '25-29': [], '30-32': [], '33+': [] };
     let maxGain = 0;
     for (const p of Object.values(s.players)) {

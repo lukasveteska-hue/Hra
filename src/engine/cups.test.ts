@@ -1,30 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { advance, createSim, finishMyMatch, myFixtureToday, seasonFinished } from './advance';
+import { seasonFinished } from './advance';
+import { playToEnd } from './testUtil';
 import { COMP_NAMES, compTable, type CompId } from './cups';
 import { buildDefaultDatabase } from './database';
 import { newGame } from './game';
 import { startNewSeason } from './newSeason';
-import { Rng } from './rng';
-import type { GameState } from './types';
 
-function playToEnd(s: GameState): GameState {
-  for (let i = 0; i < 800 && !seasonFinished(s); i++) {
-    const f = myFixtureToday(s);
-    if (f) {
-      const rng = new Rng(s.rngState);
-      const sim = createSim(s, f, rng);
-      sim.runToEnd();
-      s = finishMyMatch(s, [{ fixtureId: f.id, result: sim.result() }], rng.state);
-    } else s = advance(s, 'match');
-  }
-  return s;
-}
 
 describe('poháre a Európa', () => {
-  it('celá sezóna so všetkými súťažami', () => {
+  it('celá sezóna so všetkými súťažami', async () => {
     // Slavia hrá Ligu majstrov
     let s = newGame(buildDefaultDatabase(), { manager: { name: 'T', nationality: 'SK', age: 40 }, clubId: 'slavia', seed: 4 });
-    s = playToEnd(s);
+    s = await playToEnd(s);
     expect(seasonFinished(s)).toBe(true);
     const comps = s.seasonData.comps!;
     for (const id of ['LM', 'EL', 'KL', 'POHAR-CZ', 'POHAR-SK'] as CompId[]) {

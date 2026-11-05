@@ -12,12 +12,13 @@ import { boardRating, RATING_ICON, RATING_NAMES } from '../../engine/newSeason';
 import { seasonFinished } from '../../engine/advance';
 import { isPlayoffLeague, playoffName } from '../../engine/playoffs';
 import { FixtureList } from './League';
+import { COMP_NAMES, COMP_ORDER, EURO, STAGE_NAMES } from '../../engine/cups';
 import { BarChart, HBars, LineChart, NEGATIVE, POSITIVE, SERIES } from '../charts';
 import { Attr, ClubBadge, Flag, money, Pos } from '../common';
 import { balanceSeries, byType, delta, formatShort, monthlyNet, shortMoney, Tile } from './Finance';
 import { LeagueTable } from './League';
 
-type Tab = 'overview' | 'tables' | 'players' | 'league' | 'finance' | 'transfers';
+type Tab = 'overview' | 'tables' | 'players' | 'league' | 'finance' | 'transfers' | 'cups';
 
 const TABS: Array<[Tab, string]> = [
   ['overview', 'Môj klub'],
@@ -26,6 +27,7 @@ const TABS: Array<[Tab, string]> = [
   ['league', 'Liga a ocenenia'],
   ['finance', 'Financie'],
   ['transfers', 'Prestupy'],
+  ['cups', 'Poháre'],
 ];
 
 export function SeasonReview({ openClub, onContinue }: { openClub: (id: string) => void; onContinue?: () => void }) {
@@ -86,6 +88,7 @@ export function SeasonReview({ openClub, onContinue }: { openClub: (id: string) 
       {tab === 'league' && <LeagueAwards />}
       {tab === 'finance' && <Finance />}
       {tab === 'transfers' && <Transfers />}
+      {tab === 'cups' && <CupsSummary />}
     </>
   );
 }
@@ -587,6 +590,41 @@ function Transfers() {
         <List title="Odchody z môjho klubu" list={outs} />
       </div>
       <List title="Najdrahšie prestupy sezóny" list={top} />
+    </>
+  );
+}
+
+function CupsSummary() {
+  const { state } = useGame();
+  const me = state.manager.clubId;
+  const comps = state.seasonData.comps ?? {};
+  const euroMoney = state.ledger
+    .filter((t) => t.type === 'odmena' && EURO.some((c) => t.text.startsWith(COMP_NAMES[c])))
+    .reduce((a, t) => a + t.amount, 0);
+  const text = (r?: string) => (!r ? 'nehral' : r === 'vitaz' ? '🏆 víťaz' : `vypadol / skončil: ${STAGE_NAMES[r] ?? r}`);
+  return (
+    <>
+      <div className="tiles">
+        {COMP_ORDER.filter((c) => comps[c]).map((c) => {
+          const cs = comps[c];
+          const champ = cs.champion ? state.clubs[cs.champion] : null;
+          return (
+            <Tile
+              key={c}
+              label={COMP_NAMES[c]}
+              value={champ ? <span className="club-cell" style={{ fontSize: 15 }}><ClubBadge club={champ} size={20} />{champ.shortName}</span> : '–'}
+              note={`môj klub: ${text(cs.reached[me])}`}
+            />
+          );
+        })}
+        <Tile label="Peniaze z Európy" value={money(euroMoney)} />
+      </div>
+      {COMP_ORDER.filter((c) => comps[c]?.reached[me]).map((c) => (
+        <div key={c} className="panel">
+          <h3>{COMP_NAMES[c]}</h3>
+          <FixtureList fixtures={state.seasonData.fixtures.filter((f) => f.leagueId === c && (f.homeId === me || f.awayId === me))} showDate />
+        </div>
+      ))}
     </>
   );
 }
