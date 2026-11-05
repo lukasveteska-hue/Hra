@@ -5,7 +5,7 @@ import { ageOn } from './ratings';
 import { weatherLabel, weatherPlayerFactor, type Weather } from './weather';
 import type { Rng } from './rng';
 import { autoLineup, bestFormation, conditionFactor, formationSlots, isAvailable, positionFactor } from './tactics';
-import type { Player, Position, Style, Tactic } from './types';
+import type { MatchReport, Player, Position, Style, Tactic } from './types';
 
 export type EventType = 'start' | 'goal' | 'save' | 'miss' | 'yellow' | 'red' | 'injury' | 'sub' | 'half' | 'end' | 'tactic';
 
@@ -54,6 +54,8 @@ export interface MatchResult {
   injuries: Array<{ id: string; days: number }>;
   assists: string[];
   scorers: string[];
+  /** Podrobný záznam zápasu (štatistiky, udalosti, známky) */
+  report: MatchReport;
 }
 
 const SHARE: Record<Exclude<Position, 'B'>, { att: number; mid: number; def: number }> = {
@@ -97,6 +99,7 @@ export class MatchSim {
   private assistList: string[] = [];
   private scorerList: string[] = [];
   private sideMap: Record<string, 0 | 1> = {};
+  private startLineups: [string[], string[]] = [[], []];
 
   constructor(opts: {
     players: Record<string, Player>;
@@ -112,6 +115,7 @@ export class MatchSim {
     this.date = opts.date;
     this.weather = opts.weather ?? null;
     this.sides = [this.makeSide(opts.home), this.makeSide(opts.away)];
+    this.startLineups = [this.sides[0].onPitch.map((x) => x.id), this.sides[1].onPitch.map((x) => x.id)];
     this.sides.forEach((side, si) => {
       for (const x of side.onPitch) this.sideMap[x.id] = si as 0 | 1;
       for (const id of side.bench) this.sideMap[id] = si as 0 | 1;
@@ -269,6 +273,7 @@ export class MatchSim {
         if (gkId) this.adj(gkId, -0.4);
         for (const x of oppSide.onPitch) if (x.slot === 'O') this.adj(x.id, -0.15);
         let text = `GÓL! ${name(sp)} (${this.sideName(si, clubNames)})`;
+        let assist: string | undefined;
         if (this.rng.chance(0.75)) {
           const assistId = this.weightedPick(
             side.onPitch
@@ -279,12 +284,13 @@ export class MatchSim {
               }),
           );
           if (assistId) {
+            assist = assistId;
             this.assistList.push(assistId);
             this.adj(assistId, 0.6);
             text += `, prihrával ${name(this.players[assistId])}`;
           }
         }
-        this.events.push({ minute: m, type: 'goal', side: si, playerId: shooterId, text: `${text}. ${h.goals}:${a.goals}` });
+        this.events.push({ minute: m, type: 'goal', side: si, playerId: shooterId, otherId: assist, text: `${text}. ${h.goals}:${a.goals}` });
       } else if (roll < q + 0.3) {
         side.onTarget++;
         this.adj(shooterId, 0.1);
@@ -493,6 +499,17 @@ export class MatchSim {
       injuries: this.injuries,
       assists: this.assistList,
       scorers: this.scorerList,
+      report: {
+        stats: [h, a].map((sd) => {
+          const total = h.possession + a.possession || 1;
+          return [sd.shots, sd.onTarget, Math.round((sd.possession / total) * 100), sd.yellow, sd.red];
+        }) as [number[], number[]],
+        events: this.events
+          .filter((e) => ['goal', 'yellow', 'red', 'sub', 'injury'].includes(e.type))
+          .map((e) => [e.minute, e.type as MatchReport['events'][number][1], e.side, e.playerId ?? '', e.otherId ?? ''] as MatchReport['events'][number]),
+        ratings,
+        lineups: this.startLineups,
+      },
     };
   }
 

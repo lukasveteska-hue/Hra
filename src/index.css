@@ -1057,3 +1057,46 @@ table.data th.center {
   border-radius: 4px;
   font-size: 15px;
 }
+
+/* ---------- Detail zápasu ---------- */
+.report-events {
+  display: grid;
+  gap: 4px;
+}
+.rev {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.rev.away {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.rev-min {
+  color: var(--muted);
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.rev.away .rev-min {
+  text-align: right;
+}
+.rev.goal .rev-txt {
+  font-weight: 700;
+  color: var(--accent-2);
+}
+/* Klikateľný výsledok zápasu */
+.score-btn {
+  min-height: 0;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.score-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-2);
+  background: var(--bg);
+}

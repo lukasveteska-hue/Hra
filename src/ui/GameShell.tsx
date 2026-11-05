@@ -9,6 +9,7 @@ import { ClubBadge, formatDate, money } from './common';
 import { MatchScreen } from './MatchScreen';
 import { clubTheme } from './clubTheme';
 import { NavContext } from './NavContext';
+import { MatchReportModal } from './MatchReport';
 import { ClubScreen } from './screens/Club';
 import { CompetitionsScreen, LeagueScreen } from './screens/League';
 import { Overview } from './screens/Overview';
@@ -36,6 +37,8 @@ export function GameShell() {
   const { state, setState } = useGame();
   const [screen, setScreen] = useState<Screen>('overview');
   const [clubView, setClubView] = useState<string | null>(null);
+  const [matchView, setMatchView] = useState<string | null>(null);
+  const viewedFixture = matchView ? state.seasonData.fixtures.find((f) => f.id === matchView) : undefined;
   const [inMatch, setInMatch] = useState(false);
   const club = state.clubs[state.manager.clubId];
   const league = leagueOf(state, club);
@@ -164,7 +167,10 @@ export function GameShell() {
           ))}
         </nav>
         <main className="content">
-          <NavContext.Provider value={{ openClub }}>{main}</NavContext.Provider>
+          <NavContext.Provider value={{ openClub: (id) => { setMatchView(null); openClub(id); }, openMatch: setMatchView }}>
+            {main}
+            {viewedFixture && <MatchReportModal fixture={viewedFixture} onClose={() => setMatchView(null)} />}
+          </NavContext.Provider>
         </main>
       </div>
     </div>

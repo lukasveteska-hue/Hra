@@ -3,7 +3,7 @@ import { formatDateShort } from '../dates';
 import { standings, type TableRow } from '../../engine/standings';
 import type { Fixture } from '../../engine/types';
 import { useGame } from '../GameContext';
-import { ClubLink } from '../NavContext';
+import { ClubLink, useNav } from '../NavContext';
 import { playoffName } from '../../engine/playoffs';
 import { RATING_ICON, RATING_NAMES } from '../../engine/newSeason';
 import { seasonLabel } from '../../engine/game';
@@ -311,6 +311,7 @@ function Rounds({ leagueId }: { leagueId: string }) {
 
 export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[]; showDate?: boolean }) {
   const { state } = useGame();
+  const { openMatch } = useNav();
   return (
     <div className="table-wrap">
       <table className="data">
@@ -320,7 +321,12 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
             const a = state.clubs[f.awayId];
             const mine = f.homeId === state.manager.clubId || f.awayId === state.manager.clubId;
             return (
-              <tr key={f.id} className={mine ? 'highlight' : undefined}>
+              <tr
+                key={f.id}
+                className={[mine ? 'highlight' : '', f.played ? 'clickable' : ''].join(' ')}
+                onClick={f.played ? () => openMatch(f.id) : undefined}
+                title={f.played ? 'Zobraziť detail zápasu' : undefined}
+              >
                 {showDate && <td className="muted">{formatDateShort(f.date)}</td>}
                 {showDate && (
                   <td className="muted" style={{ fontSize: 11 }}>
@@ -331,7 +337,13 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
                   <ClubLink id={h.id} />
                 </td>
                 <td className="center" style={{ width: 60 }}>
-                  <strong>{f.played ? `${f.homeGoals}:${f.awayGoals}` : '–:–'}</strong>
+                  {f.played ? (
+                    <button className="score-btn" onClick={(e) => { e.stopPropagation(); openMatch(f.id); }} title="Zobraziť detail zápasu">
+                      {f.homeGoals}:{f.awayGoals}
+                    </button>
+                  ) : (
+                    <strong>–:–</strong>
+                  )}
                   {f.penaltyWinner && <div className="muted" style={{ fontSize: 10 }}>pen. {state.clubs[f.penaltyWinner].shortName}</div>}
                 </td>
                 <td>

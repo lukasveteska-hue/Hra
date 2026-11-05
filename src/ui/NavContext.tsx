@@ -4,7 +4,10 @@ import { createContext, useContext } from 'react';
 import { useGame } from './GameContext';
 import { ClubBadge } from './common';
 
-export const NavContext = createContext<{ openClub: (id: string) => void }>({ openClub: () => {} });
+export const NavContext = createContext<{ openClub: (id: string) => void; openMatch: (fixtureId: string) => void }>({
+  openClub: () => {},
+  openMatch: () => {},
+});
 
 export function useNav() {
   return useContext(NavContext);

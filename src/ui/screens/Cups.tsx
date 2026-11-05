@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { COMP_NAMES, compTable, EURO, STAGE_NAMES, stagesOf, type CompId } from '../../engine/cups';
 import type { Fixture } from '../../engine/types';
 import { useGame } from '../GameContext';
-import { ClubLink } from '../NavContext';
+import { ClubLink, useNav } from '../NavContext';
 import { ClubBadge, Flag } from '../common';
 import { formatDateShort } from '../dates';
 
@@ -89,6 +89,7 @@ const isDomestic = (state: ReturnType<typeof useGame>['state'], id: string) => !
 /** Dvojzápasy alebo jednotlivé zápasy */
 function TieList({ fixtures, single }: { fixtures: Fixture[]; single?: boolean }) {
   const { state } = useGame();
+  const { openMatch } = useNav();
   const me = state.manager.clubId;
   const groups = new Map<string, Fixture[]>();
   for (const f of fixtures) {
@@ -122,7 +123,13 @@ function TieList({ fixtures, single }: { fixtures: Fixture[]; single?: boolean }
                 <td className="center" style={{ whiteSpace: 'nowrap' }}>
                   {legs.map((f) => (
                     <div key={f.id}>
-                      <strong>{f.played ? `${f.homeGoals}:${f.awayGoals}` : '–:–'}</strong>
+                      {f.played ? (
+                        <button className="score-btn" onClick={() => openMatch(f.id)} title="Zobraziť detail zápasu">
+                          {f.homeGoals}:{f.awayGoals}
+                        </button>
+                      ) : (
+                        <strong>–:–</strong>
+                      )}
                       {legs.length > 1 && <span className="muted"> ({f.round}. z.)</span>}
                     </div>
                   ))}

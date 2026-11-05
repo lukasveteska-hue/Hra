@@ -62,6 +62,7 @@ export function applyFriendly(state: GameState, f: Fixture, r: MatchResult, rng:
   f.homeGoals = r.homeGoals;
   f.awayGoals = r.awayGoals;
   f.goals = r.goals;
+  f.report = r.report;
   for (const id of r.appeared) {
     const p = state.players[id];
     if (!p) continue;

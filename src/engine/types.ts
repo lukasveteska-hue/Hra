@@ -206,6 +206,18 @@ export interface Fixture {
   attendance?: number;
   /** Víťaz po penaltách (pohárové zápasy) */
   penaltyWinner?: string;
+  /** Podrobný záznam zápasu (od verzie s detailom zápasov) */
+  report?: MatchReport;
+}
+
+export interface MatchReport {
+  /** Pre domácich a hostí: [strely, na bránu, držanie lopty %, žlté karty, červené karty] */
+  stats: [number[], number[]];
+  /** Udalosti: [minúta, typ, strana 0 = domáci / 1 = hostia, hráč, druhý hráč (asistencia / vystriedaný)] */
+  events: Array<[number, 'goal' | 'yellow' | 'red' | 'sub' | 'injury', 0 | 1, string, string]>;
+  ratings: Record<string, number>;
+  /** Základné zostavy domácich a hostí */
+  lineups: [string[], string[]];
 }
 
 export interface PlayerSeasonStats {

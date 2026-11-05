@@ -72,6 +72,7 @@ export function applyResult(state: GameState, fixtureId: string, r: MatchResult,
   f.homeGoals = r.homeGoals;
   f.awayGoals = r.awayGoals;
   f.goals = r.goals;
+  f.report = r.report;
 
   // Ligové štatistiky zvlášť, pohárové zvlášť (podľa súťaže)
   const stats = state.leagues[f.leagueId] ? state.seasonData.stats : ((state.seasonData.compStats ??= {})[f.leagueId] ??= {});
