@@ -13,6 +13,14 @@ import { ClubBadge, Modal, Pos } from './common';
 import { AttackSlider, TacticsEditor } from './TacticsEditor';
 
 const MATCH_MS = 60_000;
+
+/** Ikonky udalostí v priebehu zápasu */
+const EVENT_ICON: Partial<Record<string, string>> = { goal: '⚽', yellow: '🟨', red: '🟥', sub: '🔄', injury: '🩹', half: '⏸️', end: '🏁', start: '📣' };
+
+/** Názov štadióna (zahraničné kluby nemajú v hre zadaný štadión) */
+function stadiumName(c: { stadium: string; shortName: string; capacity: number }): string {
+  return c.stadium ? `${c.stadium} (${c.capacity.toLocaleString('sk-SK')})` : `štadión klubu ${c.shortName}`;
+}
 const TICK_MS = MATCH_MS / 90;
 
 interface Live {
@@ -76,7 +84,7 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
       <>
         <Scoreboard home={home} away={away} hg={null} ag={null} minute={null} />
         <p className="muted" style={{ marginTop: -4, textAlign: 'center' }}>
-          {weatherLabel(weatherFor(fixture.id, fixture.date))} · {home.stadium}
+          {weatherLabel(weatherFor(fixture.id, fixture.date))} · 🏟️ {stadiumName(home)}
         </p>
         <div className="row" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Zostava a taktika</h2>
@@ -104,13 +112,16 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
     <>
       <Scoreboard home={home} away={away} hg={hs.goals} ag={as.goals} minute={minute} />
       <p className="muted" style={{ marginTop: -4, textAlign: 'center', fontSize: 12 }}>
-        {weatherLabel(weatherFor(fixture.id, fixture.date))}
+        {weatherLabel(weatherFor(fixture.id, fixture.date))} · 🏟️ {stadiumName(home)}
       </p>
       <ul className="commentary mobile-only panel" style={{ padding: '4px 12px' }}>
         {events.slice(0, 3).map((e, i) => (
           <li key={i} className={e.type}>
             <span className="min">{e.minute}'</span>
-            <span className="txt">{e.text}</span>
+            <span className="txt">
+                    {EVENT_ICON[e.type] ? `${EVENT_ICON[e.type]} ` : ''}
+                    {e.text}
+                  </span>
           </li>
         ))}
       </ul>
@@ -223,7 +234,10 @@ export function MatchScreen({ fixture, onDone }: { fixture: Fixture; onDone: () 
               {events.map((e, i) => (
                 <li key={i} className={e.type}>
                   <span className="min">{e.minute}'</span>
-                  <span className="txt">{e.text}</span>
+                  <span className="txt">
+                    {EVENT_ICON[e.type] ? `${EVENT_ICON[e.type]} ` : ''}
+                    {e.text}
+                  </span>
                 </li>
               ))}
             </ul>

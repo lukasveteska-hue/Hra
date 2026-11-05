@@ -13,7 +13,7 @@ import { euroEntrantsFrom, initCompetitions } from './cups';
 import { scheduleFriendlies } from './friendlies';
 import type { Club, GameState, League, Manager, Player, Position, Staff } from './types';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 /** Hra začína v lete počas prestupového obdobia */
 export function startDate(season: number): string {

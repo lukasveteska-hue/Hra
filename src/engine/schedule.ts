@@ -5,27 +5,144 @@ import type { Rng } from './rng';
 import { standings } from './standings';
 import type { Fixture, GameState, League, SeasonData } from './types';
 
-/** Každý s každým (kruhová metóda), vráti kolá s dvojicami [domáci, hostia] */
+/**
+ * Každý s každým (kruhová metóda), vráti kolá s dvojicami [domáci, hostia].
+ * Domáce prostredie sa striedá: kto hral naposledy vonku, hrá doma (najviac 2 zápasy za sebou na rovnakom mieste).
+ */
 export function roundRobin(teams: string[], double: boolean): Array<Array<[string, string]>> {
   const list = [...teams];
   if (list.length % 2) list.push('__volno__');
   const n = list.length;
-  const rounds: Array<Array<[string, string]>> = [];
+  const raw: Array<Array<[string, string]>> = [];
   for (let r = 0; r < n - 1; r++) {
     const pairs: Array<[string, string]> = [];
     for (let i = 0; i < n / 2; i++) {
       const a = list[i];
       const b = list[n - 1 - i];
       if (a === '__volno__' || b === '__volno__') continue;
-      // Striedanie domáceho prostredia
-      pairs.push((r + i) % 2 === 0 ? [a, b] : [b, a]);
+      pairs.push([a, b]);
     }
-    rounds.push(pairs);
+    raw.push(pairs);
     // Rotácia všetkých okrem prvého
     list.splice(1, 0, list.pop()!);
   }
+  const rounds = balanceVenues(raw);
   if (!double) return rounds;
   return [...rounds, ...rounds.map((rd) => rd.map(([h, a]) => [a, h] as [string, string]))];
+}
+
+/** Určí domáceho v každej dvojici tak, aby sa kluby striedali doma a vonku */
+export function balanceVenues(rounds: Array<Array<[string, string]>>): Array<Array<[string, string]>> {
+  const last = new Map<string, 'D' | 'V'>();
+  const homes = new Map<string, number>();
+  const games = new Map<string, number>();
+  const need = (t: string) => {
+    const l = last.get(t);
+    return (games.get(t) ?? 0) - 2 * (homes.get(t) ?? 0) + (l === 'V' ? 3 : l === 'D' ? -3 : 0);
+  };
+  return rounds.map((pairs) =>
+    pairs.map(([a, b]) => {
+      const [h, w] = need(a) >= need(b) ? [a, b] : [b, a];
+      last.set(h, 'D');
+      last.set(w, 'V');
+      homes.set(h, (homes.get(h) ?? 0) + 1);
+      games.set(h, (games.get(h) ?? 0) + 1);
+      games.set(w, (games.get(w) ?? 0) + 1);
+      return [h, w] as [string, string];
+    }),
+  );
+}
+
+/**
+ * Oprava rozpisu v rozohratej hre: pri ešte neodohraných ligových zápasoch prerozdelí domáce prostredie.
+ * Odohrané zápasy sa nemenia; každá dvojica hrá stále raz doma a raz vonku.
+ */
+export function rebalanceUnplayed(fixtures: Fixture[], myClubId?: string): void {
+  const groups = new Map<string, Fixture[]>();
+  for (const f of fixtures) {
+    if (f.phase !== 'zakladna' && !/^s\d+$/.test(f.phase)) continue;
+    const key = `${f.leagueId}|${f.phase}`;
+    groups.set(key, [...(groups.get(key) ?? []), f]);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => a.round - b.round || a.date.localeCompare(b.date));
+    const pairOf = (f: Fixture) => [f.homeId, f.awayId].sort().join('|');
+    const byPair = new Map<string, Fixture[]>();
+    for (const f of list) byPair.set(pairOf(f), [...(byPair.get(pairOf(f)) ?? []), f]);
+    const last = new Map<string, 'D' | 'V'>();
+    const homes = new Map<string, number>();
+    const games = new Map<string, number>();
+    const need = (t: string) => {
+      const l = last.get(t);
+      return (games.get(t) ?? 0) - 2 * (homes.get(t) ?? 0) + (l === 'V' ? 3 : l === 'D' ? -3 : 0);
+    };
+    const decided = new Set<string>();
+    for (const f of list) {
+      const legs = byPair.get(pairOf(f)) ?? [f];
+      const other = legs.find((x) => x !== f);
+      if (!f.played && !decided.has(f.id)) {
+        if (other && other.played) {
+          // Druhý zápas dvojice: domáci je ten, kto bol v prvom vonku
+          [f.homeId, f.awayId] = [other.awayId, other.homeId];
+        } else {
+          const [a, b] = [f.homeId, f.awayId];
+          const [h, w] = need(a) >= need(b) ? [a, b] : [b, a];
+          f.homeId = h;
+          f.awayId = w;
+          if (other && !other.played) {
+            other.homeId = w;
+            other.awayId = h;
+            decided.add(other.id);
+          }
+        }
+      }
+      last.set(f.homeId, 'D');
+      last.set(f.awayId, 'V');
+      homes.set(f.homeId, (homes.get(f.homeId) ?? 0) + 1);
+      games.set(f.homeId, (games.get(f.homeId) ?? 0) + 1);
+      games.set(f.awayId, (games.get(f.awayId) ?? 0) + 1);
+    }
+    if (myClubId) reorderRoundsFor(list, myClubId);
+  }
+}
+
+/**
+ * Poprehadzuje poradie zostávajúcich (celých neodohraných) kôl tak, aby sa môj klub striedal doma a vonku.
+ * Dátumy kôl ostávajú, mení sa len to, ktoré kolo sa hrá v ktorý termín.
+ */
+function reorderRoundsFor(list: Fixture[], me: string): void {
+  if (!list.some((f) => f.homeId === me || f.awayId === me)) return;
+  const byRound = new Map<number, Fixture[]>();
+  for (const f of list) byRound.set(f.round, [...(byRound.get(f.round) ?? []), f]);
+  const open = [...byRound.entries()].filter(([, fx]) => fx.every((f) => !f.played)).sort((a, b) => a[0] - b[0]);
+  if (open.length < 3) return;
+  const slots = open.map(([round, fx]) => ({ round, date: fx[0].date }));
+  const venue = (fx: Fixture[]) => {
+    const f = fx.find((x) => x.homeId === me || x.awayId === me);
+    return f ? (f.homeId === me ? 'D' : 'V') : '-';
+  };
+  // Posledné miesto, kde môj klub hral pred zostávajúcimi kolami
+  const playedMine = list.filter((f) => f.played && (f.homeId === me || f.awayId === me)).sort((a, b) => a.round - b.round);
+  let prev = playedMine.length ? (playedMine[playedMine.length - 1].homeId === me ? 'D' : 'V') : '-';
+  const pool = open.map(([, fx]) => fx);
+  const order: Fixture[][] = [];
+  while (pool.length) {
+    const remD = pool.filter((fx) => venue(fx) === 'D').length;
+    const remV = pool.filter((fx) => venue(fx) === 'V').length;
+    // Chceme opačné miesto ako naposledy; ak ho už niet, čokoľvek
+    const want = prev === 'D' ? 'V' : prev === 'V' ? 'D' : remD >= remV ? 'D' : 'V';
+    let idx = pool.findIndex((fx) => venue(fx) === want);
+    if (idx < 0) idx = 0;
+    const [fx] = pool.splice(idx, 1);
+    order.push(fx);
+    prev = venue(fx) === '-' ? prev : venue(fx);
+  }
+  order.forEach((fx, i) => {
+    for (const f of fx) {
+      f.round = slots[i].round;
+      f.date = slots[i].date;
+    }
+  });
 }
 
 function shuffle<T>(rng: Rng, items: T[]): T[] {

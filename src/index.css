@@ -1051,3 +1051,9 @@ table.data th.center {
     font-size: 17px;
   }
 }
+/* Gól v priebehu zápasu – slávnostnejšie */
+.commentary li.goal {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 4px;
+  font-size: 15px;
+}

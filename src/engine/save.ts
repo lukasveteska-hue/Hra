@@ -3,7 +3,7 @@
 import { del, get, set } from 'idb-keyval';
 import { SAVE_VERSION } from './game';
 import { Rng } from './rng';
-import { createSeason } from './schedule';
+import { createSeason, rebalanceUnplayed } from './schedule';
 import { defaultTactic } from './tactics';
 import { seasonStartSnapshot } from './finance';
 import { initialManagement } from './management';
@@ -126,6 +126,12 @@ function migrate(state: GameState): GameState {
     // Staršie hry: poháre začnú od ďalšej sezóny
     state.seasonData.comps ??= {};
     state.version = 8;
+  }
+  if (state.version < 9) {
+    // Oprava striedania doma/vonku v neodohraných zápasoch rozohranej sezóny
+    rebalanceUnplayed(state.seasonData.fixtures, state.manager.clubId);
+    state.seasonData.fixtures.sort((a, b) => a.date.localeCompare(b.date));
+    state.version = 9;
   }
   return state;
 }
