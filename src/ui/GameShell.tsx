@@ -18,14 +18,15 @@ import { TransfersScreen } from './screens/Transfers';
 import { SaveScreen } from './screens/Save';
 import { SquadScreen } from './screens/Squad';
 
-export type Screen = 'overview' | 'squad' | 'transfers' | 'league' | 'comps' | 'finance' | 'save' | 'review' | 'newseason';
+export type Screen = 'overview' | 'squad' | 'transfers' | 'league' | 'comps' | 'euro' | 'finance' | 'save' | 'review' | 'newseason';
 
-const NAV: Array<{ id: Screen; label: string; icon: string }> = [
+const NAV: Array<{ id: Screen; label: string; icon: string; short?: string }> = [
   { id: 'overview', label: 'Prehľad', icon: '🏠' },
   { id: 'squad', label: 'Káder', icon: '👕' },
-  { id: 'transfers', label: 'Prestupy', icon: '🔄' },
+  { id: 'transfers', label: 'Prestupy', icon: '🔄', short: 'Prestupy' },
   { id: 'league', label: 'Liga', icon: '📊' },
-  { id: 'comps', label: 'Súťaže', icon: '🏆' },
+  { id: 'comps', label: 'Ostatné ligy', icon: '🗂️', short: 'Ligy' },
+  { id: 'euro', label: 'Európske poháre', icon: '🏆', short: 'Európa' },
   { id: 'finance', label: 'Financie', icon: '💶' },
   { id: 'save', label: 'Hra', icon: '💾' },
 ];
@@ -76,7 +77,8 @@ export function GameShell() {
         {screen === 'squad' && <SquadScreen />}
         {screen === 'transfers' && <TransfersScreen />}
         {screen === 'league' && <LeagueScreen openClub={openClub} />}
-        {screen === 'comps' && <CompetitionsScreen openClub={openClub} />}
+        {screen === 'comps' && <CompetitionsScreen key="leagues" mode="leagues" openClub={openClub} />}
+        {screen === 'euro' && <CompetitionsScreen key="euro" mode="euro" openClub={openClub} />}
         {screen === 'finance' && <FinanceScreen />}
         {screen === 'save' && <SaveScreen />}
         {screen === 'review' && <SeasonReview openClub={openClub} onContinue={() => go('newseason')} />}
@@ -153,7 +155,7 @@ export function GameShell() {
               }}
             >
               <span className="icon">{n.icon}</span>
-              <span>
+              <span className="nav-label" data-short={`${n.short ?? n.label}${n.id === 'transfers' && offerCount > 0 ? ` (${offerCount})` : ''}`}>
                 {n.label}
                 {n.id === 'transfers' && offerCount > 0 ? ` (${offerCount})` : ''}
               </span>

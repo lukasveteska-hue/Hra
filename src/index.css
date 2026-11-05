@@ -1034,3 +1034,20 @@ table.data th.center {
     border-top: 2px solid var(--club-1);
   }
 }
+/* Na mobile kratšie názvy v spodnom menu (8 položiek) */
+@media (max-width: 800px) {
+  .nav-label {
+    font-size: 0;
+  }
+  .nav-label::after {
+    content: attr(data-short);
+    font-size: 10px;
+  }
+  .sidenav button {
+    padding: 6px 0;
+    min-width: 0;
+  }
+  .sidenav .icon {
+    font-size: 17px;
+  }
+}

@@ -139,69 +139,57 @@ export function LeagueScreen({ openClub }: { openClub: (id: string) => void }) {
   );
 }
 
-type Group = 'CZ' | 'SK' | 'EU';
+type Group = 'CZ' | 'SK';
 const COMP_ICON: Record<CompId, string> = { LM: '⭐', EL: '🟠', KL: '🟢', 'POHAR-CZ': '🏆', 'POHAR-SK': '🏆' };
 
-/** Ostatné súťaže: iné ligy, domáce poháre a európske súťaže */
-export function CompetitionsScreen({ openClub }: { openClub: (id: string) => void }) {
+/** Ostatné ligy (Česko, Slovensko) s domácimi pohármi, alebo európske poháre */
+export function CompetitionsScreen({ openClub, mode }: { openClub: (id: string) => void; mode: 'leagues' | 'euro' }) {
   const { state } = useGame();
   const me = state.manager.clubId;
   const myLeague = state.clubs[me].leagueId;
   const [group, setGroup] = useState<Group>((state.clubs[me].country as Group) === 'SK' ? 'SK' : 'CZ');
   const comps = state.seasonData.comps ?? {};
   const inComp = (c: CompId) => !!comps[c]?.reached[me] || (comps[c]?.leagueTeams ?? []).includes(me) || Object.values(comps[c]?.entrants ?? {}).some((l) => l.includes(me));
-  /** Stav môjho klubu v súťaži: hráš / vypadol / víťaz */
-  const status = (c: CompId): string => {
-    const cs = comps[c];
-    if (!cs || !inComp(c)) return '';
-    if (cs.champion === me) return ' · 🏆';
-    const st = cs.reached[me];
-    if (!st) return ' · hráš';
-    if (!cs.resolved.includes(st)) return ' · hráš';
-    if (st === 'lf') return (cs.advanced.lf ?? []).indexOf(me) < 24 ? ' · hráš' : ' · vypadol';
-    return (cs.advanced[st] ?? []).includes(me) ? ' · hráš' : ' · vypadol';
-  };
 
-  const items: Array<{ id: string; label: string; mine: boolean; tag?: string }> =
-    group === 'EU'
-      ? (['LM', 'EL', 'KL'] as CompId[]).filter((c) => comps[c]).map((c) => ({ id: c, label: `${COMP_ICON[c]} ${COMP_NAMES[c]}`, mine: status(c) === ' · hráš', tag: status(c) }))
+  const items: Array<{ id: string; label: string; mine: boolean }> =
+    mode === 'euro'
+      ? (['LM', 'EL', 'KL'] as CompId[]).filter((c) => comps[c]).map((c) => ({ id: c, label: `${COMP_ICON[c]} ${COMP_NAMES[c]}`, mine: inComp(c) }))
       : [
           ...Object.values(state.leagues)
             .filter((l) => l.country === group && l.id !== myLeague)
             .map((l) => ({ id: l.id, label: l.name, mine: false })),
-          ...(comps[`POHAR-${group}`]
-            ? [{ id: `POHAR-${group}`, label: `🏆 ${COMP_NAMES[`POHAR-${group}` as CompId]}`, mine: status(`POHAR-${group}` as CompId) === ' · hráš', tag: status(`POHAR-${group}` as CompId) }]
-            : []),
+          ...(comps[`POHAR-${group}`] ? [{ id: `POHAR-${group}`, label: `🏆 ${COMP_NAMES[`POHAR-${group}` as CompId]}`, mine: false }] : []),
         ];
   const [selected, setSelected] = useState<string | null>(null);
-  const current = items.find((i) => i.id === selected) ?? items.find((i) => i.mine) ?? items[0];
+  // Európa: otvorí sa posledná súťaž, v ktorej klub hral (najnižšia, kam sa presunul), inak Liga majstrov
+  const current = items.find((i) => i.id === selected) ?? (mode === 'euro' ? [...items].reverse().find((i) => i.mine) : undefined) ?? items[0];
 
   return (
     <>
-      <h1>Súťaže</h1>
-      <div className="tabs">
-        {([
-          ['CZ', '🇨🇿 Česko'],
-          ['SK', '🇸🇰 Slovensko'],
-          ['EU', '🇪🇺 Európa'],
-        ] as Array<[Group, string]>).map(([g, label]) => (
-          <button
-            key={g}
-            className={group === g ? 'active' : ''}
-            onClick={() => {
-              setGroup(g);
-              setSelected(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <h1>{mode === 'euro' ? 'Európske poháre' : 'Ostatné ligy'}</h1>
+      {mode === 'leagues' && (
+        <div className="tabs">
+          {([
+            ['CZ', '🇨🇿 Česko'],
+            ['SK', '🇸🇰 Slovensko'],
+          ] as Array<[Group, string]>).map(([g, label]) => (
+            <button
+              key={g}
+              className={group === g ? 'active' : ''}
+              onClick={() => {
+                setGroup(g);
+                setSelected(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="tabs">
         {items.map((i) => (
           <button key={i.id} className={current?.id === i.id ? 'active' : ''} onClick={() => setSelected(i.id)}>
             {i.label}
-            {i.tag ?? ''}
           </button>
         ))}
       </div>
