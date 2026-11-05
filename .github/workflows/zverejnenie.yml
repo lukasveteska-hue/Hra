@@ -39,3 +39,6 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # GitHub Pages niekedy aktualizuje stránku dlhšie – počkať až 20 minút
+          timeout: 1200000
