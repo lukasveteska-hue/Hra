@@ -1,11 +1,12 @@
 // Úprava zostavy a taktiky môjho klubu
 
+import { useState } from 'react';
 import { squadOf } from '../engine/game';
 import { ovr } from '../engine/ratings';
 import { autoLineup, FORMATIONS, formationSlots, isAvailable, slotRating, STYLE_NAMES, validTactic } from '../engine/tactics';
-import type { Player, Style, Tactic } from '../engine/types';
+import type { Player, Position, Style, Tactic } from '../engine/types';
 import { useGame } from './GameContext';
-import { Attr, Pos, POS_LABEL } from './common';
+import { Attr, FormArrow, Modal, Pos, POS_LABEL, POS_NAME } from './common';
 
 export function TacticsEditor() {
   const { state, setState } = useGame();
@@ -13,6 +14,7 @@ export function TacticsEditor() {
   const byId = new Map(squad.map((p) => [p.id, p]));
   const t = validTactic(state);
   const slots = formationSlots(t.formation);
+  const [picking, setPicking] = useState<number | null>(null);
 
   const update = (next: Partial<Tactic>) => setState({ ...state, tactic: { ...t, ...next } });
 
@@ -114,16 +116,20 @@ export function TacticsEditor() {
               return (
                 <div key={i} className="lineup-row">
                   <Pos p={slot} />
-                  <select value={t.lineup[i] ?? ''} onChange={(e) => setSlot(i, e.target.value)}>
-                    {squad
-                      .slice()
-                      .sort((a, b) => slotRating(b, slot) - slotRating(a, slot))
-                      .map((c) => (
-                        <option key={c.id} value={c.id} disabled={!isAvailable(c)}>
-                          {optionLabel(c, slot)}
-                        </option>
-                      ))}
-                  </select>
+                  <button className="slot-btn" onClick={() => setPicking(i)} title="Vymeniť hráča na tomto mieste">
+                    {p ? (
+                      <>
+                        <span className="slot-name">
+                          {p.lastName} {p.firstName.charAt(0)}.
+                        </span>
+                        {p.position !== slot && <span className="mid"> ({POS_LABEL[p.position]})</span>}
+                        {!isAvailable(p) && <span> {p.injuryDays > 0 ? '🩹' : '🟥'}</span>}
+                      </>
+                    ) : (
+                      <span className="muted">vybrať hráča…</span>
+                    )}
+                    <span className="slot-chev">▾</span>
+                  </button>
                   <span className="num" title="Hodnotenie na tomto mieste">
                     {p ? <Attr v={slotRating(p, slot)} /> : '–'}
                   </span>
@@ -161,17 +167,112 @@ export function TacticsEditor() {
           </div>
         </div>
       </div>
+      {picking !== null && (
+        <PlayerPicker
+          slot={slots[picking]}
+          slotIndex={picking}
+          lineup={t.lineup}
+          bench={t.bench}
+          slots={slots}
+          squad={squad}
+          onPick={(id) => {
+            setSlot(picking, id);
+            setPicking(null);
+          }}
+          onClose={() => setPicking(null)}
+        />
+      )}
     </>
   );
 }
 
-const order = (p: Player) => ({ B: 0, O: 1, Z: 2, U: 3 })[p.position];
+/** Okno na výber hráča na miesto v zostave: lavička, mimo zostavy, už v zostave (výmena) */
+function PlayerPicker({
+  slot,
+  slotIndex,
+  lineup,
+  bench,
+  slots,
+  squad,
+  onPick,
+  onClose,
+}: {
+  slot: Position;
+  slotIndex: number;
+  lineup: string[];
+  bench: string[];
+  slots: Position[];
+  squad: Player[];
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  const current = squad.find((p) => p.id === lineup[slotIndex]);
+  // Najprv hráči z rovnakej pozície, potom podľa hodnotenia na tomto mieste
+  const sort = (list: Player[]) =>
+    [...list].sort((a, b) => Number(b.position === slot) - Number(a.position === slot) || slotRating(b, slot) - slotRating(a, slot));
+  const onBench = sort(squad.filter((p) => bench.includes(p.id) && !lineup.includes(p.id)));
+  const outside = sort(squad.filter((p) => !bench.includes(p.id) && !lineup.includes(p.id)));
+  const inLineup = sort(squad.filter((p) => lineup.includes(p.id) && p.id !== current?.id));
 
-function optionLabel(p: Player, slot: Player['position']): string {
-  const status = p.injuryDays > 0 ? ' – zranený' : p.suspension > 0 ? ' – trest' : '';
-  const off = p.position !== slot ? ` (${POS_LABEL[p.position]})` : '';
-  return `${p.lastName} ${p.firstName.charAt(0)}.${off} ${Math.round(slotRating(p, slot))} · ${Math.round(p.energy)}%${status}`;
+  const Row = ({ p, note }: { p: Player; note?: string }) => {
+    const avail = isAvailable(p);
+    return (
+      <button className={`pick-row${p.position === slot ? ' same' : ''}`} disabled={!avail} onClick={() => onPick(p.id)}>
+        <Pos p={p.position} />
+        <span className="pick-name">
+          {p.lastName} {p.firstName.charAt(0)}.
+          {!avail && <span className="bad"> {p.injuryDays > 0 ? `🩹 zranený (${p.injuryDays} d.)` : `🟥 trest (${p.suspension} z.)`}</span>}
+          {note && <span className="muted"> · {note}</span>}
+        </span>
+        <span className="num" title="Hodnotenie na tomto mieste">
+          <Attr v={slotRating(p, slot)} />
+        </span>
+        <span className="num muted" title="Energia">
+          {Math.round(p.energy)}%
+        </span>
+        <FormArrow form={p.form} />
+      </button>
+    );
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="modal-head">
+        <Pos p={slot} />
+        <div>
+          <h2 style={{ margin: 0 }}>Hráč na pozíciu: {POS_NAME[slot].toLowerCase()}</h2>
+          <div className="muted" style={{ fontSize: 13 }}>
+            Teraz tu hrá: {current ? `${current.firstName} ${current.lastName} (${POS_NAME[current.position].toLowerCase()})` : 'nikto'}
+          </div>
+        </div>
+        <div className="spacer" />
+        <button onClick={onClose} aria-label="Zavrieť">
+          ✕
+        </button>
+      </div>
+      <div className="pick-head muted">
+        <span />
+        <span>Hráč</span>
+        <span className="num">Na mieste</span>
+        <span className="num">Energ.</span>
+        <span>Forma</span>
+      </div>
+      <h3>Lavička</h3>
+      {onBench.length ? onBench.map((p) => <Row key={p.id} p={p} />) : <p className="muted">Nikto.</p>}
+      <h3 style={{ marginTop: 14 }}>Mimo zostavy</h3>
+      {outside.length ? outside.map((p) => <Row key={p.id} p={p} />) : <p className="muted">Nikto.</p>}
+      <h3 style={{ marginTop: 14 }}>Už v zostave – výmena miest</h3>
+      <p className="muted" style={{ marginTop: -6, fontSize: 12 }}>
+        Hráč sa presunie sem a {current ? current.lastName : 'tento hráč'} prejde na jeho miesto.
+      </p>
+      {inLineup.map((p) => (
+        <Row key={p.id} p={p} note={`hrá ako ${POS_NAME[slots[lineup.indexOf(p.id)]].toLowerCase()}`} />
+      ))}
+    </Modal>
+  );
 }
+
+const order = (p: Player) => ({ B: 0, O: 1, Z: 2, U: 3 })[p.position];
 
 export function AttackSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const label = value < 25 ? 'veľmi defenzívne' : value < 45 ? 'defenzívne' : value <= 55 ? 'vyvážene' : value <= 75 ? 'útočne' : 'veľmi útočne';

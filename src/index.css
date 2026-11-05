@@ -1112,3 +1112,50 @@ table.data th.center {
 .trend.down {
   color: var(--bad);
 }
+
+/* ---------- Výber hráča do zostavy ---------- */
+.slot-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  min-height: 36px;
+  padding: 6px 10px;
+  background: var(--bg);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.slot-btn .slot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot-btn .slot-chev {
+  margin-left: auto;
+  color: var(--muted);
+}
+.pick-head,
+.pick-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 64px 52px 34px;
+  gap: 8px;
+  align-items: center;
+}
+.pick-head {
+  font-size: 11px;
+  padding: 0 10px 4px;
+}
+.pick-row {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 4px;
+  min-height: 40px;
+  padding: 6px 10px;
+}
+.pick-row.same {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.pick-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
