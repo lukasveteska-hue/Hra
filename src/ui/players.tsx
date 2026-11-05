@@ -278,7 +278,60 @@ export function PlayerDetail({ player, onClose }: { player: Player; onClose: () 
           </>
         )}
       </dl>
+      <TransferHistory playerId={p.id} />
       <PlayerActions player={p} />
     </Modal>
+  );
+}
+
+/** História prestupov hráča (od začiatku kariéry v hre) */
+function TransferHistory({ playerId }: { playerId: string }) {
+  const { state } = useGame();
+  const list = state.transfers.filter((t) => t.playerId === playerId).reverse();
+  const clubCell = (id: string | null, name?: string) => {
+    const c = id ? state.clubs[id] : null;
+    if (c)
+      return (
+        <span className="club-cell">
+          <ClubBadge club={c} size={16} />
+          {c.shortName}
+        </span>
+      );
+    return <span className="muted">{name ?? 'voľný hráč'}</span>;
+  };
+  return (
+    <>
+      <h3 style={{ marginTop: 16 }}>História prestupov</h3>
+      {list.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>
+          Žiadne prestupy – hráč je v klube od začiatku tvojej kariéry.
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data transfer-history">
+            <thead>
+              <tr>
+                <th>Dátum</th>
+                <th>Odkiaľ</th>
+                <th>Kam</th>
+                <th className="num">Suma</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((t, i) => (
+                <tr key={i}>
+                  <td>
+                    {Number(t.date.slice(5, 7))}/{t.date.slice(0, 4)}
+                  </td>
+                  <td>{clubCell(t.fromClubId, t.fromName)}</td>
+                  <td>{clubCell(t.toClubId, t.toName)}</td>
+                  <td className="num">{t.fee > 0 ? money(t.fee) : <span className="muted">zadarmo</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }

@@ -83,3 +83,13 @@ export function standings(state: GameState, leagueId: string): TableRow[] {
   }
   return list;
 }
+
+/** Aktuálne miesto klubu v jeho lige (null, ak klub nehrá ligu alebo sa ešte nehralo) */
+export function leagueRank(state: GameState, clubId: string): number | null {
+  const leagueId = state.clubs[clubId]?.leagueId;
+  if (!leagueId || !state.leagues[leagueId]) return null;
+  const table = standings(state, leagueId);
+  if (!table.some((r) => r.played > 0)) return null;
+  const i = table.findIndex((r) => r.clubId === clubId);
+  return i >= 0 ? i + 1 : null;
+}

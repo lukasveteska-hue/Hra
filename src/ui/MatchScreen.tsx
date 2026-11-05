@@ -11,6 +11,8 @@ import { useGame } from './GameContext';
 import { weatherFor, weatherLabel } from '../engine/weather';
 import { Attr, ClubBadge, Modal, Pos, POS_NAME } from './common';
 import { AttackSlider, TacticsEditor } from './TacticsEditor';
+import { leagueRank } from '../engine/standings';
+import { RankTag } from './screens/Overview';
 
 const MATCH_MS = 60_000;
 
@@ -276,17 +278,20 @@ function Scoreboard({
   ag,
   minute,
 }: {
-  home: Parameters<typeof ClubBadge>[0]['club'] & { shortName: string };
-  away: Parameters<typeof ClubBadge>[0]['club'] & { shortName: string };
+  home: Parameters<typeof ClubBadge>[0]['club'] & { id: string; shortName: string };
+  away: Parameters<typeof ClubBadge>[0]['club'] & { id: string; shortName: string };
   hg: number | null;
   ag: number | null;
   minute: number | null;
 }) {
+  const { state } = useGame();
   return (
     <div className="scoreboard">
       <div className="team">
         <ClubBadge club={home} size={36} />
-        <span>{home.shortName}</span>
+        <span>
+          {home.shortName} <RankTag rank={leagueRank(state, home.id)} />
+        </span>
       </div>
       <div>
         <div className="score">{hg === null ? 'vs' : `${hg}:${ag}`}</div>
@@ -300,7 +305,9 @@ function Scoreboard({
         )}
       </div>
       <div className="team away">
-        <span>{away.shortName}</span>
+        <span>
+          {away.shortName} <RankTag rank={leagueRank(state, away.id)} />
+        </span>
         <ClubBadge club={away} size={36} />
       </div>
     </div>

@@ -4,7 +4,7 @@ import { countryName } from '../../data/countries';
 import { useGame } from '../GameContext';
 import { formatDate, money, Flag, ClubBadge } from '../common';
 import { isMine, seasonFinished } from '../../engine/advance';
-import { standings } from '../../engine/standings';
+import { leagueRank as rankOf, standings } from '../../engine/standings';
 import { formatDateShort } from '../dates';
 import { FixtureList } from './League';
 import { weatherFor, weatherLabel } from '../../engine/weather';
@@ -80,11 +80,13 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
             <span className="club-cell">
               <ClubBadge club={state.clubs[next.homeId]} size={26} />
               <strong>{state.clubs[next.homeId].shortName}</strong>
+              <RankTag rank={rankOf(state, next.homeId)} />
             </span>
             <span className="muted">–</span>
             <span className="club-cell">
               <ClubBadge club={state.clubs[next.awayId]} size={26} />
               <strong>{state.clubs[next.awayId].shortName}</strong>
+              <RankTag rank={rankOf(state, next.awayId)} />
             </span>
             <div className="spacer" />
             <span className="muted">
@@ -174,5 +176,15 @@ export function Overview({ openClub, openReview }: { openClub: (id: string) => v
         </ul>
       </div>
     </>
+  );
+}
+
+/** Miesto v tabuľke v zátvorke, napr. „(3.)“ */
+export function RankTag({ rank }: { rank: number | null }) {
+  if (!rank) return null;
+  return (
+    <span className="muted rank-tag" title="Aktuálne miesto v ligovej tabuľke">
+      ({rank}.)
+    </span>
   );
 }
