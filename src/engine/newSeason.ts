@@ -9,6 +9,7 @@ import { ageOn, COUNTRY_PRICE_FACTOR, fairWage, LEAGUE_PRICE_FACTOR, ovr } from 
 import { Rng } from './rng';
 import { createSeason } from './schedule';
 import { EURO, euroEntrantsFrom, initCompetitions } from './cups';
+import { scheduleFriendlies } from './friendlies';
 import { standings } from './standings';
 import { autoLineup, defaultTactic } from './tactics';
 import { freeAgents, generateFreeAgents, teamAverage } from './transfers';
@@ -307,6 +308,7 @@ export function startNewSeason(prev: GameState): { state: GameState; report: Tra
   state.ledger = [];
   state.seasonData = createSeason(state, rng);
   initCompetitions(state, nextEuro, rng);
+  scheduleFriendlies(state, rng);
   state.management.sponsor = null;
   state.management.sponsorOffers = makeSponsorOffers(state, rng);
   const squad = Object.values(state.players).filter((p) => p.clubId === me);

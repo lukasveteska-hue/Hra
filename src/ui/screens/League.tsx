@@ -323,7 +323,7 @@ export function FixtureList({ fixtures, showDate = false }: { fixtures: Fixture[
                 {showDate && <td className="muted">{formatDateShort(f.date)}</td>}
                 {showDate && (
                   <td className="muted" style={{ fontSize: 11 }}>
-                    {isCompetition(f.leagueId) ? COMP_SHORT[f.leagueId] : f.leagueId.startsWith('PO-') ? 'Baráž' : 'Liga'}
+                    {isCompetition(f.leagueId) ? COMP_SHORT[f.leagueId] : f.leagueId.startsWith('PO-') ? 'Baráž' : f.leagueId === 'PRIATELSKY' ? 'Prípravný' : 'Liga'}
                   </td>
                 )}
                 <td style={{ textAlign: 'right' }}>

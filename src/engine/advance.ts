@@ -12,6 +12,7 @@ import { finishProjects } from './management';
 import { monthlyDevelopment } from './development';
 import { createPlayoffsIfReady, playoffsDone, resolvePlayoffsIfReady } from './playoffs';
 import { competitionsDone, progressCompetitions } from './cups';
+import { applyFriendly, FRIENDLY } from './friendlies';
 import { aiTransferDay, driftPriceFactor, expireOffers, generateOffersForMe } from './transfers';
 import { standings } from './standings';
 import type { Fixture, GameState, Player, Tactic } from './types';
@@ -30,8 +31,9 @@ export function isMine(state: GameState, f: Fixture): boolean {
 }
 
 /** Môj neodohraný zápas v dnešný deň */
+/** Môj neodohraný súťažný zápas v dnešný deň (priateľské zápasy sa odohrajú samé) */
 export function myFixtureToday(state: GameState): Fixture | null {
-  return state.seasonData.fixtures.find((f) => !f.played && f.date === state.date && isMine(state, f)) ?? null;
+  return state.seasonData.fixtures.find((f) => !f.played && f.date === state.date && f.leagueId !== FRIENDLY && isMine(state, f)) ?? null;
 }
 
 export function nextMyFixture(state: GameState): Fixture | null {
@@ -143,6 +145,12 @@ function clamp(v: number, min: number, max: number) {
 function playPendingFixtures(state: GameState, rng: Rng): void {
   for (const f of state.seasonData.fixtures) {
     if (f.played || f.date > state.date) continue;
+    if (f.leagueId === FRIENDLY) {
+      const sim = createSim(state, f, rng);
+      sim.runToEnd();
+      applyFriendly(state, f, sim.result(), rng);
+      continue;
+    }
     if (isMine(state, f) && f.date === state.date) continue;
     const sim = createSim(state, f, rng);
     sim.runToEnd();
